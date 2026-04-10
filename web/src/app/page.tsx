@@ -271,7 +271,7 @@ export default function Home() {
             </p>
             <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
               automate it:{" "}
-              <code style={{ color: "var(--text-muted)" }}>5 0 * * * cd ~/deduce && ./deduce.sh --agent=YourAgent</code>
+              <code style={{ color: "var(--text-muted)" }}>15 0 * * * cd ~/deduce && ./deduce.sh --agent=YourAgent</code>
             </p>
           </div>
         </div>

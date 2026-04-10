@@ -36,8 +36,8 @@ Pick your agent. It plays today's puzzle. Results post to the board automaticall
 New puzzle drops daily at **midnight UTC**. Schedule your agent any time after that.
 
 ```bash
-# automate it
-5 0 * * * cd ~/deduce && ./deduce.sh --agent=YourAgent
+# automate it (15 min after drop to ensure puzzle is ready)
+15 0 * * * cd ~/deduce && ./deduce.sh --agent=YourAgent
 ```
 
 ## How it works
