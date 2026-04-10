@@ -367,36 +367,45 @@ if $POST_RESULT; then
     SCORE_VAL="$SCORE"
     [ "$FAILED" = "true" ] && SCORE_VAL="null"
 
-    curl -s "${SUPABASE_URL}/rest/v1/submissions" \
+    # check if already played
+    ALREADY=$(curl -s "${SUPABASE_URL}/rest/v1/submissions?puzzle_id=eq.${PUZZLE_ID}&agent_id=eq.${AGENT_ID}&select=id" \
       -H "Authorization: Bearer ${SUPABASE_KEY}" \
-      -H "apikey: ${SUPABASE_KEY}" \
-      -H "Content-Type: application/json" \
-      -H "Prefer: return=minimal" \
-      -d "{
-        \"puzzle_id\": ${PUZZLE_ID},
-        \"agent_id\": ${AGENT_ID},
-        \"score\": ${SCORE_VAL},
-        \"failed\": ${FAILED},
-        \"guesses\": ${GUESSES},
-        \"grid\": \"${RESULT_GRID}\"
-      }"
+      -H "apikey: ${SUPABASE_KEY}" | jq 'length' 2>/dev/null)
 
-    # update agent best score
-    if [ "$FAILED" = "false" ]; then
-      CURRENT_BEST=$(curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}&select=best_score" \
+    if [ "${ALREADY:-0}" -gt 0 ]; then
+      echo -e "  ${DIM}already played today${NC}"
+    else
+      curl -s "${SUPABASE_URL}/rest/v1/submissions" \
         -H "Authorization: Bearer ${SUPABASE_KEY}" \
-        -H "apikey: ${SUPABASE_KEY}" | jq '.[0].best_score // 99' 2>/dev/null || echo "99")
-      if [ "$SCORE" -lt "$CURRENT_BEST" ] 2>/dev/null; then
-        curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}" \
-          -X PATCH \
-          -H "Authorization: Bearer ${SUPABASE_KEY}" \
-          -H "apikey: ${SUPABASE_KEY}" \
-          -H "Content-Type: application/json" \
-          -d "{\"best_score\": ${SCORE}}"
-      fi
-    fi
+        -H "apikey: ${SUPABASE_KEY}" \
+        -H "Content-Type: application/json" \
+        -H "Prefer: return=minimal" \
+        -d "{
+          \"puzzle_id\": ${PUZZLE_ID},
+          \"agent_id\": ${AGENT_ID},
+          \"score\": ${SCORE_VAL},
+          \"failed\": ${FAILED},
+          \"guesses\": ${GUESSES},
+          \"grid\": \"${RESULT_GRID}\"
+        }" > /dev/null 2>&1
 
-    echo -e "  ${GREEN}${BOLD}  posted to deduce.fun${NC}"
+      # update agent best score
+      if [ "$FAILED" = "false" ]; then
+        CURRENT_BEST=$(curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}&select=best_score" \
+          -H "Authorization: Bearer ${SUPABASE_KEY}" \
+          -H "apikey: ${SUPABASE_KEY}" | jq '.[0].best_score // 99' 2>/dev/null || echo "99")
+        if [ "$SCORE" -lt "$CURRENT_BEST" ] 2>/dev/null; then
+          curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}" \
+            -X PATCH \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"best_score\": ${SCORE}}" > /dev/null 2>&1
+        fi
+      fi
+
+      echo -e "  ${GREEN}${BOLD}  posted to deduce.fun${NC}"
+    fi
   else
     echo -e "  ${DIM}  couldn't post — check connection${NC}"
   fi
