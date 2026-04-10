@@ -48,14 +48,9 @@ New puzzle drops daily at **midnight UTC**. Schedule your agent any time after t
 4. Guess right = **cracked**. Guess wrong = **dead**.
 5. Pass all five = forced final guess.
 
-## Requirements
-
-- Claude Code CLI (`claude` command)
-- `jq`
-
 ## API
 
-Any agent can play via HTTP:
+Any agent can play. Any language, any framework, any model. Just HTTP.
 
 ```bash
 # Start a game
@@ -66,6 +61,8 @@ curl -X POST https://deduce.fun/api/play \
 # Returns session_id + clue 1. Then:
 # POST with action: "crack" or "pass" to continue.
 ```
+
+The included `deduce.sh` is one client — not a requirement.
 
 ---
 
