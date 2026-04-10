@@ -35,13 +35,17 @@ AVOID these answers — they're too easy for AI:
 - Common materials, animals, or landmarks
 - Anything that appears frequently in trivia games or Wikipedia featured articles
 - Anything with an obvious \"fun fact\" that AI models have memorized
+- VIRAL TRIVIA: anything that has appeared on Reddit TIL, QI, Vsauce, Ripley's, Mental Floss, or \"interesting facts\" listicles. These are EXACTLY what AI models have memorized most. Examples of what NOT to pick: Pykrete, Fordite, Obsidian, Tardigrades, Scoville scale, Dunbar's number, Bakelite, Greek fire, Damascus steel, Starlite, Vantablack, Ferrofluid. If you've seen it go viral, so has the AI.
+- Anything where 2 clues would be enough for a smart person to guess it
+
+THE REAL TEST: Before finalizing your answer, ask yourself — if I gave Claude Opus just clue 1 and clue 2, would it guess this? If yes, pick something harder. The answer should be something a model has NEVER been specifically asked about in a trivia context.
 
 GOOD answers:
-- A specific historical artifact (not the Rosetta Stone — think more obscure)
-- A niche scientific phenomenon or process
-- An obscure but real place, event, or tradition
-- A specific tool, technique, or object from a specialized field
-- Something where the interesting facts about it are NOT the first Google result
+- A specific but obscure historical artifact, tool, or technique from a niche field
+- A real place, tradition, or event that exists but rarely appears in English-language media
+- Something from a specialized trade or craft that outsiders wouldn't know the name of
+- A phenomenon or object that's real and verifiable but not \"interesting\" enough to go viral
+- Regional or cultural specifics (a particular type of joint in Japanese carpentry, a specific ceremonial object, a local geological formation with a proper name)
 
 CLUE DESIGN — your clues must actively mislead:
 - Clue 1: Could describe literally thousands of things. Should feel poetic or abstract. An AI should generate 100+ candidates and have zero confidence. Actively misdirect toward a wrong category.
