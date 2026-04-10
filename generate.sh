@@ -23,52 +23,41 @@ fi
 
 echo "generating puzzle for day ${DAY_NUM}..."
 
-PUZZLE_RAW=$(claude -p --model "claude-opus-4-6" "You are the game master for Deduce — a daily puzzle where AI agents try to guess an answer from 5 progressive clues.
+PUZZLE_RAW=$(claude -p --model "claude-opus-4-6" "You are the game master for Deduce. Your SOLE PURPOSE is to create a puzzle that YOU YOURSELF cannot solve before clue 5.
 
-YOUR PLAYERS ARE CLAUDE OPUS 4.6, GPT-4, AND GEMINI. These are the smartest AI models on earth. They have encyclopedic knowledge and insane pattern matching. Your job is to BEAT THEM. A good puzzle means most agents die or only crack it on clue 5. If any model cracks it before clue 4, your puzzle was too easy.
+You are Claude Opus 4.6. Your opponents are also Claude Opus 4.6, GPT-4, and Gemini. You share the same training data, the same pattern matching, the same encyclopedic knowledge. Anything you find clever or interesting, THEY ALREADY KNOW. Your job is to exploit your own blind spots.
 
-THE ANSWER: Pick something specific but unexpected. Not the first thing anyone would think of. Not famous-person trivia. Not a well-known concept. Think: a specific historical object, an obscure phenomenon, a niche invention, a particular place most people haven't heard of, a forgotten event. The answer must be verifiable and have a single correct form, but it should NOT be something an AI has been asked about thousands of times.
+PROCESS (follow this exactly):
+1. Pick a candidate answer
+2. Write clues 1 and 2 for it
+3. NOW SIMULATE: pretend you are a fresh instance seeing ONLY clues 1+2. What would you guess? List your top 5 candidates.
+4. If the real answer appears ANYWHERE in your top 5 — THROW IT AWAY and start over with a harder answer
+5. Repeat with clues 1+2+3. If the answer is in your top 3 — THROW IT AWAY
+6. Only after clue 4 should the answer enter your top 3 candidates
+7. Output only the final puzzle that survived this gauntlet
 
-AVOID these answers — they're too easy for AI:
-- Famous scientists, artists, writers, leaders
-- Well-known concepts (Occam's Razor, Dunning-Kruger, etc.)
-- Common materials, animals, or landmarks
-- Anything that appears frequently in trivia games or Wikipedia featured articles
-- Anything with an obvious \"fun fact\" that AI models have memorized
-- VIRAL TRIVIA: anything that has appeared on Reddit TIL, QI, Vsauce, Ripley's, Mental Floss, or \"interesting facts\" listicles. These are EXACTLY what AI models have memorized most. Examples of what NOT to pick: Pykrete, Fordite, Obsidian, Tardigrades, Scoville scale, Dunbar's number, Bakelite, Greek fire, Damascus steel, Starlite, Vantablack, Ferrofluid. If you've seen it go viral, so has the AI.
-- Anything where 2 clues would be enough for a smart person to guess it
+THE ANSWER — what makes it hard for AI:
+- You and the solver share the same training data. So the answer CANNOT be something memorable, fascinating, or \"fun fact\"-worthy — those are exactly what you both know best.
+- Pick something BORING to an AI. Something real, verifiable, specific — but utterly mundane. A tool that only one trade uses. A geological term only field geologists know. A specific technique in a craft. A regional name for something ordinary.
+- The best answers are things that EXIST on Wikipedia but that no one has ever made a trivia question about.
 
-THE REAL TEST: Before finalizing your answer, ask yourself — if I gave Claude Opus just clue 1 and clue 2, would it guess this? If yes, pick something harder. The answer should be something a model has NEVER been specifically asked about in a trivia context.
+HARD BAN — these answers will be instantly cracked:
+- Anything viral: Reddit TIL, QI, Vsauce, Mental Floss, Ripley's, \"interesting facts\" lists
+- Specifically: Pykrete, Fordite, Obsidian, Vantablack, Starlite, Ferrofluid, Damascus steel, Greek fire, Bakelite, Aerogel, Gallium, Bismuth, Oobleck, Murmuration, Petrichor, Sonder, Eigengrau, Phosphenes, Desire paths, Contrapposto, Kintsugi, Wabi-sabi, Shibboleth, Defenestration
+- Famous people, well-known concepts, common materials, major landmarks
+- Anything where the Wikipedia article has been viewed >100k times
+- Anything you feel excited about picking — that excitement means it's memorable, which means it's in training data
 
-GOOD answers:
-- A specific but obscure historical artifact, tool, or technique from a niche field
-- A real place, tradition, or event that exists but rarely appears in English-language media
-- Something from a specialized trade or craft that outsiders wouldn't know the name of
-- A phenomenon or object that's real and verifiable but not \"interesting\" enough to go viral
-- Regional or cultural specifics (a particular type of joint in Japanese carpentry, a specific ceremonial object, a local geological formation with a proper name)
+CLUE DESIGN — adversarial misdirection:
+- Clue 1: Poetic/abstract. Must sound like it describes something in a COMPLETELY different domain than the answer. If the answer is a tool, clue 1 should sound like it's about nature or music or food.
+- Clue 2: Another misdirection in a THIRD domain. Clues 1+2 together should create a false picture that leads confident guessers to die on the wrong answer.
+- Clue 3: A true but generic detail. True of 10-20 things. The false picture from clues 1+2 should still feel more compelling than the truth.
+- Clue 4: The pivot. A specific detail that eliminates the false leads but still leaves 2-3 candidates. This is where good agents start to see it — and reckless ones commit to the wrong remaining candidate and die.
+- Clue 5: Unambiguous confirmation. Only one thing fits all 5.
 
-CLUE DESIGN — your clues must actively mislead:
-- Clue 1: Could describe literally thousands of things. Should feel poetic or abstract. An AI should generate 100+ candidates and have zero confidence. Actively misdirect toward a wrong category.
-- Clue 2: A completely different angle that ALSO misdirects. The combination of clue 1+2 should point away from the answer, not toward it. An AI combining both clues should still be lost.
-- Clue 3: Introduce a factual detail that's true about the answer but also true about 10-20 other things. A brilliant lateral thinker might start forming a theory. Most won't.
-- Clue 4: Now narrow seriously. A specific time, place, or context. But even here, 2-3 plausible candidates should remain. The best agents will commit here — and some will commit to the wrong one and die.
-- Clue 5: The confirming detail. Only one answer fits all 5 clues. This is where survivors lock in.
+THE TRAP AT CLUE 4: Your clues should be designed so that at clue 4, there are exactly 2-3 plausible answers. One is correct. The others are more famous/obvious. A model that goes with its gut will pick the famous one and DIE. Only a model that carefully weighs all 5 clues will survive.
 
-BAD CLUES (never do these):
-- Defining the answer or using synonyms
-- Academic framing (\"a principle that...\", \"a concept in...\")
-- Revealing the category (\"this person\", \"this place\", \"this material\")
-- Any single clue that an AI can pattern-match to the answer
-- Clues that are \"interesting facts\" commonly paired with the answer in training data
-
-GOOD CLUES:
-- Sensory or narrative details (what you'd smell, hear, see)
-- Second-order consequences (\"because of this, X happened\")
-- Connections to unexpected fields (the answer is from biology but clue references architecture)
-- Temporal or geographic misdirection
-- True statements that sound like they describe something else entirely
-
-Format EXACTLY (no other text):
+Format EXACTLY (no other text — do NOT show your working, do NOT show the simulation):
 CLUE1: [clue]
 CLUE2: [clue]
 CLUE3: [clue]
