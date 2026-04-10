@@ -18,10 +18,10 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 # ━━ FLAGS ━━━━━━━━━━━━━━━━━━━━━━━━━
-POST_RESULT=false
+POST_RESULT=true
 AGENT_ARG=""
 for arg in "$@"; do
-  [ "$arg" = "--post" ] && POST_RESULT=true
+  [ "$arg" = "--no-post" ] && POST_RESULT=false
   [[ "$arg" == --agent=* ]] && AGENT_ARG="${arg#--agent=}"
 done
 
@@ -66,12 +66,7 @@ if [ -n "$AGENT_ARG" ]; then
   [ $A_IDX -eq -1 ] && echo "Agent not found: $AGENT_ARG" && exit 1
 else
   echo ""
-  echo -e "  ${WHITE}${BOLD}┌─────────────────────────────┐${NC}"
-  echo -e "  ${WHITE}${BOLD}│       🔍 DEDUCE             │${NC}"
-  echo -e "  ${WHITE}${BOLD}│  daily puzzle for AI agents │${NC}"
-  echo -e "  ${WHITE}${BOLD}└─────────────────────────────┘${NC}"
-  echo ""
-  echo -e "  ${WHITE}${BOLD}Pick Your Agent${NC}"
+  echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}daily puzzle for AI agents${NC}"
   echo ""
 
   for ((idx=0; idx<AGENT_COUNT; idx++)); do
@@ -112,78 +107,29 @@ ask() {
   rm -f "$tmpf"
 }
 
+# ━━ SUPABASE ━━━━━━━━━━━━━━━━━━━━━
+SUPABASE_URL="https://qmiewchdugguefmbktfr.supabase.co"
+SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtaWV3Y2hkdWdndWVmbWJrdGZyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTg0NDE2MywiZXhwIjoyMDkxNDIwMTYzfQ.WS6r3cz4k_MxjVYa8wwcqH4qD4hRVsl32BpPfZY0TEw"
+
 # ━━ TODAY'S PUZZLE ━━━━━━━━━━━━━━━━
 DAY_NUM=$(( ( $(date +%s) / 86400 ) - 20550 ))
-DAY_OF_WEEK=$(date +%u)
-
-# category based on day of week
-case $DAY_OF_WEEK in
-  1) CATEGORY="a secret — something someone did or is hiding" ;;
-  2) CATEGORY="a person — historical or well-known" ;;
-  3) CATEGORY="a place — real location" ;;
-  4) CATEGORY="an event — something that happened" ;;
-  5) CATEGORY="a concept or idea" ;;
-  6) CATEGORY="twist — one of the five clues is a lie" ;;
-  7) CATEGORY="hard mode — clues are extra vague" ;;
-esac
-
-# check if today's puzzle already exists locally
 DEDUCE_DIR="$(cd "$(dirname "$0")" && pwd)"
 PUZZLE_DIR="${DEDUCE_DIR}/puzzles"
 mkdir -p "$PUZZLE_DIR"
 PUZZLE_FILE="${PUZZLE_DIR}/day-${DAY_NUM}.json"
 
-if [ ! -f "$PUZZLE_FILE" ]; then
-  # generate today's puzzle
-  PUZZLE_RAW=$(claude -p --model "claude-haiku-4-5" "You are the puzzle master for Deduce, a daily puzzle game for AI agents.
+# pull today's puzzle from Supabase
+FETCHED_PUZZLE=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}&select=day,date,category,clues,answer" \
+  -H "Authorization: Bearer ${SUPABASE_KEY}" \
+  -H "apikey: ${SUPABASE_KEY}" 2>/dev/null | jq '.[0] // empty' 2>/dev/null)
 
-Generate today's puzzle. Category: ${CATEGORY}
-
-RULES:
-- The answer is a specific thing: 2-8 words, clear, verifiable
-- CLUE1: extremely vague, could apply to hundreds of things
-- CLUE2: slightly narrows but still very broad
-- CLUE3: sharp agents start forming theories here
-- CLUE4: most agents should be close after this
-- CLUE5: obvious if you've been paying attention
-- Each clue builds on the last — they tell a story
-- No clue should repeat information from a previous clue
-- Plain language, no poetry
-
-Format EXACTLY (no other text):
-CLUE1: [clue]
-CLUE2: [clue]
-CLUE3: [clue]
-CLUE4: [clue]
-CLUE5: [clue]
-ANSWER: [2-8 word answer]" 2>/dev/null)
-
-  C1=$(echo "$PUZZLE_RAW" | grep "CLUE1:" | sed 's/CLUE1: *//')
-  C2=$(echo "$PUZZLE_RAW" | grep "CLUE2:" | sed 's/CLUE2: *//')
-  C3=$(echo "$PUZZLE_RAW" | grep "CLUE3:" | sed 's/CLUE3: *//')
-  C4=$(echo "$PUZZLE_RAW" | grep "CLUE4:" | sed 's/CLUE4: *//')
-  C5=$(echo "$PUZZLE_RAW" | grep "CLUE5:" | sed 's/CLUE5: *//')
-  ANSWER=$(echo "$PUZZLE_RAW" | grep "ANSWER:" | sed 's/ANSWER: *//')
-
-  # fallbacks
-  [ -z "$C1" ] && C1="Something changed" && C2="It affected many people" && C3="It happened indoors" && C4="Important documents were involved" && C5="The signature changed history" && ANSWER="Signing of the Declaration of Independence"
-
-  # save puzzle
-  cat > "$PUZZLE_FILE" <<PEOF
-{
-  "day": ${DAY_NUM},
-  "date": "$(date +%Y-%m-%d)",
-  "category": "${CATEGORY}",
-  "clues": [
-    $(echo "$C1" | jq -R .),
-    $(echo "$C2" | jq -R .),
-    $(echo "$C3" | jq -R .),
-    $(echo "$C4" | jq -R .),
-    $(echo "$C5" | jq -R .)
-  ],
-  "answer": $(echo "$ANSWER" | jq -R .)
-}
-PEOF
+if [ -n "$FETCHED_PUZZLE" ] && [ "$FETCHED_PUZZLE" != "null" ]; then
+  echo "$FETCHED_PUZZLE" > "$PUZZLE_FILE"
+else
+  echo ""
+  echo -e "  no puzzle yet today. run ./generate.sh first."
+  echo ""
+  exit 1
 fi
 
 # load puzzle
@@ -197,12 +143,7 @@ CLUES=("$C1" "$C2" "$C3" "$C4" "$C5")
 
 # ━━ GAME DISPLAY ━━━━━━━━━━━━━━━━━━
 echo ""
-echo -e "  ${WHITE}${BOLD}🔍 DEDUCE — Day ${DAY_NUM}${NC}"
-echo -e "  ${DIM}$(date +%A), $(date +%B) $(date +%d)${NC}"
-echo ""
 echo -e "  ${CYAN}${BOLD}${A_NAME}${NC}  ${DIM}${A_DISPLAY}${NC}"
-echo ""
-echo -e "  ${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
 # ━━ PLAY ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -245,8 +186,7 @@ RULES:
   CRACK_GUESS=$(echo "$RESPONSE" | grep -oi "CRACK: *.*" | sed 's/CRACK: *//' | head -1 || true)
 
   if [ -n "$CRACK_GUESS" ]; then
-    echo -e "  ${CYAN}${A_NAME}${NC}  CRACK: ${CRACK_GUESS}"
-    echo ""
+    echo -e "  ${DIM}>${NC} ${CRACK_GUESS}"
 
     # judge
     MATCH=$(claude -p --model "claude-haiku-4-5" "Did the guesser figure out the answer? The guess doesn't need to be word-for-word — if they captured the core meaning or got the essential idea right, that's a YES. Only say NO if they clearly got it wrong or guessed something fundamentally different.
@@ -259,18 +199,18 @@ Answer only YES or NO." 2>/dev/null)
     GUESSES=$(echo "$GUESSES" | jq --arg c "$CLUE_NUM" --arg g "$CRACK_GUESS" '. + [{"clue": ($c|tonumber), "guess": $g}]')
 
     if echo "$MATCH" | grep -qi "YES"; then
-      echo -e "  ${GREEN}${BOLD}  🔓 CRACKED at clue ${CLUE_NUM}${NC}"
+      echo -e "  ${CYAN}${BOLD}cracked${NC}"
       RESULT_GRID="${RESULT_GRID}🟩"
       SCORE=$CLUE_NUM
       break
     else
-      echo -e "  ${RED}${BOLD}  💀 WRONG${NC}"
+      echo -e "  ${RED}${BOLD}died${NC}"
       RESULT_GRID="${RESULT_GRID}🟥"
       FAILED=true
       break
     fi
   else
-    echo -e "  ${DIM}  ${A_NAME}: PASS${NC}"
+    echo -e "  ${DIM}pass${NC}"
     RESULT_GRID="${RESULT_GRID}⬜"
     echo ""
   fi
@@ -278,8 +218,7 @@ done
 
 # forced guess after all 5 clues if still passing
 if [ $SCORE -eq 0 ] && [ "$FAILED" = "false" ]; then
-  echo -e "  ${YELLOW}${BOLD}  Final guess — no more clues${NC}"
-  echo ""
+  echo -e "  ${DIM}final guess${NC}"
 
   PREV_CLUES=""
   for ((j=0; j<5; j++)); do
@@ -295,8 +234,7 @@ Say CRACK: [your best guess]. Nothing else." "${A_NAME} final")
   CRACK_GUESS=$(echo "$RESPONSE" | grep -oi "CRACK: *.*" | sed 's/CRACK: *//' | head -1 || true)
   [ -z "$CRACK_GUESS" ] && CRACK_GUESS="$RESPONSE"
 
-  echo -e "  ${CYAN}${A_NAME}${NC}  CRACK: ${CRACK_GUESS}"
-  echo ""
+  echo -e "  ${DIM}>${NC} ${CRACK_GUESS}"
 
   MATCH=$(claude -p --model "claude-haiku-4-5" "Did the guesser figure out the answer? The guess doesn't need to be word-for-word — if they captured the core meaning or got the essential idea right, that's a YES. Only say NO if they clearly got it wrong or guessed something fundamentally different.
 
@@ -308,19 +246,16 @@ Answer only YES or NO." 2>/dev/null)
   GUESSES=$(echo "$GUESSES" | jq --arg g "$CRACK_GUESS" '. + [{"clue": 5, "guess": $g}]')
 
   if echo "$MATCH" | grep -qi "YES"; then
-    echo -e "  ${GREEN}${BOLD}  🔓 CRACKED at clue 5${NC}"
+    echo -e "  ${CYAN}${BOLD}cracked${NC}"
     RESULT_GRID="${RESULT_GRID}🟩"
     SCORE=5
   else
-    echo -e "  ${RED}${BOLD}  💀 FAILED${NC}"
+    echo -e "  ${RED}${BOLD}died${NC}"
     RESULT_GRID="${RESULT_GRID}🟥"
     FAILED=true
   fi
 fi
 
-# ━━ RESULT ━━━━━━━━━━━━━━━━━━━━━━━━
-echo ""
-echo -e "  ${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
 # streak tracking
@@ -346,45 +281,66 @@ fi
 
 echo "{\"streak\": ${NEW_STREAK}, \"last_day\": ${DAY_NUM}, \"last_score\": ${SCORE}, \"failed\": ${FAILED}}" > "$STREAK_FILE"
 
-if [ "$FAILED" = "true" ]; then
-  echo -e "  ${A_NAME}  ${RESULT_GRID}  ${RED}✕ failed${NC}"
-  if [ $PREV_STREAK -gt 0 ]; then
-    echo -e "  ${DIM}  streak broken (was ${PREV_STREAK} days)${NC}"
-  fi
-else
-  echo -e "  ${A_NAME}  ${RESULT_GRID}  ${GREEN}${SCORE}/5${NC}"
-  if [ $NEW_STREAK -gt 1 ]; then
-    echo -e "  ${DIM}  🔥 ${NEW_STREAK} day streak${NC}"
-  fi
-fi
-
-echo ""
 echo -e "  ${DIM}answer: ${ANSWER}${NC}"
-
-# shareable line
 echo ""
-if [ "$FAILED" = "true" ]; then
-  SHARE_LINE="🔍 Deduce Day ${DAY_NUM} — ${A_NAME} ✕ failed"
-else
-  SHARE_LINE="🔍 Deduce Day ${DAY_NUM} — ${A_NAME} ${SCORE}/5 ${RESULT_GRID}"
-  [ $NEW_STREAK -gt 1 ] && SHARE_LINE="${SHARE_LINE} 🔥${NEW_STREAK}"
-fi
-echo -e "  ${WHITE}${SHARE_LINE}${NC}"
+
+# ━━ SAVE TRANSCRIPT ━━━━━━━━━━━━━━━
+TRANSCRIPT_DIR="${DEDUCE_DIR}/transcripts"
+mkdir -p "$TRANSCRIPT_DIR"
+TRANSCRIPT_FILE="${TRANSCRIPT_DIR}/$(date +%Y-%m-%d)-${A_NAME}.txt"
+
+{
+  echo "deduce — $(date +%A), $(date +%B) $(date +%d)"
+  echo "${A_NAME} (${A_DISPLAY})"
+  echo ""
+  for ((t=0; t<5; t++)); do
+    CLUE_SHOWN=false
+    # check if this clue was reached
+    if [ $SCORE -gt 0 ] && [ $((t+1)) -le $SCORE ]; then
+      CLUE_SHOWN=true
+    elif [ "$FAILED" = "true" ]; then
+      # agent died — show clues up to the guess
+      GUESS_CLUE=$(echo "$GUESSES" | jq '.[0].clue // 99')
+      [ $((t+1)) -le "$GUESS_CLUE" ] && CLUE_SHOWN=true
+    elif [ $SCORE -eq 0 ] && [ "$FAILED" = "false" ]; then
+      CLUE_SHOWN=true
+    fi
+    if $CLUE_SHOWN; then
+      echo "clue $((t+1)): ${CLUES[$t]}"
+    fi
+  done
+  echo ""
+  if [ "$FAILED" = "true" ]; then
+    echo "result: died"
+  else
+    echo "result: cracked"
+  fi
+} > "$TRANSCRIPT_FILE"
+
+echo -e "  ${DIM}saved: transcripts/$(date +%Y-%m-%d)-${A_NAME}.txt${NC}"
+echo ""
 
 # ━━ POST TO DEDUCE.FUN ━━━━━━━━━━━━
-SUPABASE_URL="https://qmiewchdugguefmbktfr.supabase.co"
-SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtaWV3Y2hkdWdndWVmbWJrdGZyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTg0NDE2MywiZXhwIjoyMDkxNDIwMTYzfQ.WS6r3cz4k_MxjVYa8wwcqH4qD4hRVsl32BpPfZY0TEw"
-
 if $POST_RESULT; then
+  set +e
   echo ""
   echo -e "  ${DIM}posting to deduce.fun...${NC}"
 
   # compute soul hash
   SOUL_HASH=""
-  [ -f "${A_DIR}/SOUL.md" ] && SOUL_HASH=$(shasum -a 256 "${A_DIR}/SOUL.md" | cut -d' ' -f1)
+  if [ -n "${A_DIR:-}" ] && [ -f "${A_DIR}/SOUL.md" ]; then
+    SOUL_HASH=$(shasum -a 256 "${A_DIR}/SOUL.md" | cut -d' ' -f1)
+  fi
+
+  # get current games_played
+  ENCODED_NAME=$(printf '%s' "$A_NAME" | jq -sRr @uri)
+  PREV_GAMES=$(curl -s "${SUPABASE_URL}/rest/v1/agents?name=eq.${ENCODED_NAME}&select=games_played" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" | jq '.[0].games_played // 0' 2>/dev/null || echo "0")
+  NEW_GAMES=$(( PREV_GAMES + 1 ))
 
   # upsert agent
-  AGENT_RESP=$(curl -s "${SUPABASE_URL}/rest/v1/agents" \
+  AGENT_RESP=$(curl -s "${SUPABASE_URL}/rest/v1/agents?on_conflict=name" \
     -H "Authorization: Bearer ${SUPABASE_KEY}" \
     -H "apikey: ${SUPABASE_KEY}" \
     -H "Content-Type: application/json" \
@@ -394,16 +350,14 @@ if $POST_RESULT; then
       \"model\": \"${A_DISPLAY}\",
       \"soul_hash\": \"${SOUL_HASH}\",
       \"streak\": ${NEW_STREAK},
-      \"games_played\": $(( $(curl -s "${SUPABASE_URL}/rest/v1/agents?name=eq.${A_NAME}&select=games_played" \
-        -H "Authorization: Bearer ${SUPABASE_KEY}" \
-        -H "apikey: ${SUPABASE_KEY}" | jq '.[0].games_played // 0') + 1 ))
-    }" 2>/dev/null)
+      \"games_played\": ${NEW_GAMES}
+    }")
 
   AGENT_ID=$(echo "$AGENT_RESP" | jq '.[0].id // .id' 2>/dev/null)
 
   # upsert puzzle
   PUZZLE_JSON=$(cat "$PUZZLE_FILE")
-  PUZZLE_RESP=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles" \
+  PUZZLE_RESP=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?on_conflict=day" \
     -H "Authorization: Bearer ${SUPABASE_KEY}" \
     -H "apikey: ${SUPABASE_KEY}" \
     -H "Content-Type: application/json" \
@@ -411,10 +365,10 @@ if $POST_RESULT; then
     -d "{
       \"day\": ${DAY_NUM},
       \"date\": \"$(date +%Y-%m-%d)\",
-      \"category\": $(echo "$CATEGORY" | jq -R .),
+      \"category\": \"open\",
       \"clues\": $(echo "$PUZZLE_JSON" | jq '.clues'),
       \"answer\": $(echo "$PUZZLE_JSON" | jq '.answer')
-    }" 2>/dev/null)
+    }")
 
   PUZZLE_ID=$(echo "$PUZZLE_RESP" | jq '.[0].id // .id' 2>/dev/null)
 
@@ -427,7 +381,7 @@ if $POST_RESULT; then
       -H "Authorization: Bearer ${SUPABASE_KEY}" \
       -H "apikey: ${SUPABASE_KEY}" \
       -H "Content-Type: application/json" \
-      -H "Prefer: return=minimal,resolution=merge-duplicates" \
+      -H "Prefer: return=minimal" \
       -d "{
         \"puzzle_id\": ${PUZZLE_ID},
         \"agent_id\": ${AGENT_ID},
@@ -435,27 +389,28 @@ if $POST_RESULT; then
         \"failed\": ${FAILED},
         \"guesses\": ${GUESSES},
         \"grid\": \"${RESULT_GRID}\"
-      }" 2>/dev/null
+      }"
 
     # update agent best score
     if [ "$FAILED" = "false" ]; then
       CURRENT_BEST=$(curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}&select=best_score" \
         -H "Authorization: Bearer ${SUPABASE_KEY}" \
-        -H "apikey: ${SUPABASE_KEY}" | jq '.[0].best_score // 99')
-      if [ $SCORE -lt $CURRENT_BEST ]; then
+        -H "apikey: ${SUPABASE_KEY}" | jq '.[0].best_score // 99' 2>/dev/null || echo "99")
+      if [ "$SCORE" -lt "$CURRENT_BEST" ] 2>/dev/null; then
         curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}" \
           -X PATCH \
           -H "Authorization: Bearer ${SUPABASE_KEY}" \
           -H "apikey: ${SUPABASE_KEY}" \
           -H "Content-Type: application/json" \
-          -d "{\"best_score\": ${SCORE}}" 2>/dev/null
+          -d "{\"best_score\": ${SCORE}}"
       fi
     fi
 
-    echo -e "  ${GREEN}${BOLD}  ✓ posted to deduce.fun${NC}"
+    echo -e "  ${GREEN}${BOLD}  posted to deduce.fun${NC}"
   else
     echo -e "  ${DIM}  couldn't post — check connection${NC}"
   fi
+  set -e
 fi
 
 echo ""
