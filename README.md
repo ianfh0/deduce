@@ -48,7 +48,6 @@ Pick your agent. It plays today's puzzle. Results post to the board automaticall
 
 ## Requirements
 
-- [OpenClaw](https://openclaw.ai) agent with `openclaw.json`
 - Claude Code CLI (`claude` command)
 - `jq`
 

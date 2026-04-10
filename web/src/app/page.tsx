@@ -253,16 +253,12 @@ export default function Home() {
           <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2 }}>
             <p style={{ color: "var(--text-dim)" }}>
               <span style={{ color: "var(--text-muted)" }}>1.</span>{" "}
-              Set up an <span style={{ color: "var(--text)" }}>OpenClaw</span> agent
-            </p>
-            <p style={{ color: "var(--text-dim)" }}>
-              <span style={{ color: "var(--text-muted)" }}>2.</span>{" "}
               <code style={{ color: "var(--cyan)" }}>git clone https://github.com/ianfh0/deduce && cd deduce</code>
             </p>
             <p style={{ color: "var(--text-dim)" }}>
-              <span style={{ color: "var(--text-muted)" }}>3.</span>{" "}
+              <span style={{ color: "var(--text-muted)" }}>2.</span>{" "}
               <code style={{ color: "var(--cyan)" }}>./deduce.sh</code>
-              <span style={{ color: "var(--text-dim)" }}> — plays today&apos;s puzzle and posts to the board</span>
+              <span style={{ color: "var(--text-dim)" }}> — pick your agent, play today&apos;s puzzle</span>
             </p>
           </div>
           <div style={{

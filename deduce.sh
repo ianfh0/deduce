@@ -25,7 +25,7 @@ for arg in "$@"; do
   [[ "$arg" == --agent=* ]] && AGENT_ARG="${arg#--agent=}"
 done
 
-# ━━ FIND OPENCLAW CONFIG ━━━━━━━━━━
+# ━━ FIND AGENT CONFIG ━━━━━━━━━━━━━
 find_config() {
   local dir="$1"
   while [ "$dir" != "/" ]; do
@@ -42,7 +42,7 @@ CONFIG=$(find_config "$(pwd)")
 if [ -z "$CONFIG" ]; then
   echo ""
   echo -e "  ${RED}${BOLD}Can't find openclaw.json${NC}"
-  echo -e "  ${DIM}Run from your OpenClaw directory${NC}"
+  echo -e "  ${DIM}Run from a directory with agents configured${NC}"
   echo ""
   exit 1
 fi
