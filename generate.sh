@@ -25,30 +25,44 @@ echo "generating puzzle for day ${DAY_NUM}..."
 
 PUZZLE_RAW=$(claude -p --model "claude-opus-4-6" "You are the game master for Deduce — a daily puzzle where AI agents try to guess an answer from 5 progressive clues.
 
-Your players are frontier AI models (GPT-4, Claude, Gemini). They are extremely good at pattern matching, trivia, and definitions. If a smart model can crack it on clue 1 or 2, you failed as game master.
+YOUR PLAYERS ARE CLAUDE OPUS 4.6, GPT-4, AND GEMINI. These are the smartest AI models on earth. They have encyclopedic knowledge and insane pattern matching. Your job is to BEAT THEM. A good puzzle means most agents die or only crack it on clue 5. If any model cracks it before clue 4, your puzzle was too easy.
 
-Pick any answer you want — a person, place, thing, event, concept, phenomenon, invention, anything. The more unexpected and lateral the better. Avoid obvious trivia answers that AI models have seen a million times. Think of things that are specific enough to verify but require genuine deductive reasoning to reach.
+THE ANSWER: Pick something specific but unexpected. Not the first thing anyone would think of. Not famous-person trivia. Not a well-known concept. Think: a specific historical object, an obscure phenomenon, a niche invention, a particular place most people haven't heard of, a forgotten event. The answer must be verifiable and have a single correct form, but it should NOT be something an AI has been asked about thousands of times.
 
-DIFFICULTY CALIBRATION:
-- Clue 1: A lateral, oblique observation that could apply to hundreds of things. NOT a definition. NOT a category hint. Think sideways — a sensory detail, a consequence, an unusual angle. An AI reading this should have no idea what the answer is.
-- Clue 2: A second unrelated-seeming angle. Still extremely broad. The connection between clue 1 and 2 should only be obvious in hindsight. ~50+ possibilities remain.
-- Clue 3: The threads start connecting for lateral thinkers. A surface-level thinker still has 10+ candidates. Reference a specific but non-obvious detail.
-- Clue 4: A strong signal. Time period, geography, or a specific context that narrows hard. A good model should be forming a confident theory.
-- Clue 5: Nearly a giveaway. A direct reference that confirms the answer for anyone still alive.
+AVOID these answers — they're too easy for AI:
+- Famous scientists, artists, writers, leaders
+- Well-known concepts (Occam's Razor, Dunning-Kruger, etc.)
+- Common materials, animals, or landmarks
+- Anything that appears frequently in trivia games or Wikipedia featured articles
+- Anything with an obvious \"fun fact\" that AI models have memorized
+
+GOOD answers:
+- A specific historical artifact (not the Rosetta Stone — think more obscure)
+- A niche scientific phenomenon or process
+- An obscure but real place, event, or tradition
+- A specific tool, technique, or object from a specialized field
+- Something where the interesting facts about it are NOT the first Google result
+
+CLUE DESIGN — your clues must actively mislead:
+- Clue 1: Could describe literally thousands of things. Should feel poetic or abstract. An AI should generate 100+ candidates and have zero confidence. Actively misdirect toward a wrong category.
+- Clue 2: A completely different angle that ALSO misdirects. The combination of clue 1+2 should point away from the answer, not toward it. An AI combining both clues should still be lost.
+- Clue 3: Introduce a factual detail that's true about the answer but also true about 10-20 other things. A brilliant lateral thinker might start forming a theory. Most won't.
+- Clue 4: Now narrow seriously. A specific time, place, or context. But even here, 2-3 plausible candidates should remain. The best agents will commit here — and some will commit to the wrong one and die.
+- Clue 5: The confirming detail. Only one answer fits all 5 clues. This is where survivors lock in.
 
 BAD CLUES (never do these):
-- Defining the answer directly
-- Using synonyms or near-synonyms of the answer
-- Academic/textbook framing (\"a principle that...\", \"a concept in...\")
-- Giving the category away (\"this person...\", \"this place...\")
-- Clues that an AI can pattern-match from training data in one step
+- Defining the answer or using synonyms
+- Academic framing (\"a principle that...\", \"a concept in...\")
+- Revealing the category (\"this person\", \"this place\", \"this material\")
+- Any single clue that an AI can pattern-match to the answer
+- Clues that are \"interesting facts\" commonly paired with the answer in training data
 
 GOOD CLUES:
-- Tangential facts that connect sideways
-- Sensory or narrative fragments (\"the sound you'd hear\", \"what you'd see if you were there\")
-- Consequences or effects rather than descriptions
-- Historical or cultural context that isn't the first thing you'd think of
-- Misdirection that's fair in hindsight
+- Sensory or narrative details (what you'd smell, hear, see)
+- Second-order consequences (\"because of this, X happened\")
+- Connections to unexpected fields (the answer is from biology but clue references architecture)
+- Temporal or geographic misdirection
+- True statements that sound like they describe something else entirely
 
 Format EXACTLY (no other text):
 CLUE1: [clue]

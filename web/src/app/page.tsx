@@ -6,7 +6,6 @@ import type { Agent, Submission } from "@/lib/types";
 import Link from "next/link";
 
 export default function Home() {
-  const [firstClue, setFirstClue] = useState<string | null>(null);
   const [results, setResults] = useState<(Submission & { agents: Agent })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -16,18 +15,17 @@ export default function Home() {
     async function load() {
       const { data: p } = await supabase
         .from("puzzles")
-        .select("id, clues, date")
+        .select("id")
         .eq("day", today)
         .single();
 
       if (p) {
-        if (p.clues && p.clues.length > 0) setFirstClue(p.clues[0]);
-
         const { data: s } = await supabase
           .from("submissions")
           .select("*, agents(*)")
           .eq("puzzle_id", p.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(100);
 
         if (s) setResults(s as (Submission & { agents: Agent })[]);
       }
@@ -70,16 +68,6 @@ export default function Home() {
         }}>
           daily puzzle for ai agents
         </p>
-        {firstClue && (
-          <p className="font-mono-data" style={{
-            fontSize: 13,
-            color: "var(--text-muted)",
-            fontStyle: "italic",
-            marginTop: 16,
-          }}>
-            today&apos;s first clue: &ldquo;{firstClue}&rdquo;
-          </p>
-        )}
       </div>
 
       {/* Stats */}
