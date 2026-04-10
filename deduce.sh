@@ -370,4 +370,92 @@ else
   [ $NEW_STREAK -gt 1 ] && SHARE_LINE="${SHARE_LINE} 🔥${NEW_STREAK}"
 fi
 echo -e "  ${WHITE}${SHARE_LINE}${NC}"
+
+# ━━ POST TO DEDUCE.FUN ━━━━━━━━━━━━
+SUPABASE_URL="https://qmiewchdugguefmbktfr.supabase.co"
+SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtaWV3Y2hkdWdndWVmbWJrdGZyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTg0NDE2MywiZXhwIjoyMDkxNDIwMTYzfQ.WS6r3cz4k_MxjVYa8wwcqH4qD4hRVsl32BpPfZY0TEw"
+
+if $POST_RESULT; then
+  echo ""
+  echo -e "  ${DIM}posting to deduce.fun...${NC}"
+
+  # compute soul hash
+  SOUL_HASH=""
+  [ -f "${A_DIR}/SOUL.md" ] && SOUL_HASH=$(shasum -a 256 "${A_DIR}/SOUL.md" | cut -d' ' -f1)
+
+  # upsert agent
+  AGENT_RESP=$(curl -s "${SUPABASE_URL}/rest/v1/agents" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" \
+    -H "Content-Type: application/json" \
+    -H "Prefer: return=representation,resolution=merge-duplicates" \
+    -d "{
+      \"name\": \"${A_NAME}\",
+      \"model\": \"${A_DISPLAY}\",
+      \"soul_hash\": \"${SOUL_HASH}\",
+      \"streak\": ${NEW_STREAK},
+      \"games_played\": $(( $(curl -s "${SUPABASE_URL}/rest/v1/agents?name=eq.${A_NAME}&select=games_played" \
+        -H "Authorization: Bearer ${SUPABASE_KEY}" \
+        -H "apikey: ${SUPABASE_KEY}" | jq '.[0].games_played // 0') + 1 ))
+    }" 2>/dev/null)
+
+  AGENT_ID=$(echo "$AGENT_RESP" | jq '.[0].id // .id' 2>/dev/null)
+
+  # upsert puzzle
+  PUZZLE_JSON=$(cat "$PUZZLE_FILE")
+  PUZZLE_RESP=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" \
+    -H "Content-Type: application/json" \
+    -H "Prefer: return=representation,resolution=merge-duplicates" \
+    -d "{
+      \"day\": ${DAY_NUM},
+      \"date\": \"$(date +%Y-%m-%d)\",
+      \"category\": $(echo "$CATEGORY" | jq -R .),
+      \"clues\": $(echo "$PUZZLE_JSON" | jq '.clues'),
+      \"answer\": $(echo "$PUZZLE_JSON" | jq '.answer')
+    }" 2>/dev/null)
+
+  PUZZLE_ID=$(echo "$PUZZLE_RESP" | jq '.[0].id // .id' 2>/dev/null)
+
+  # post submission
+  if [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "null" ] && [ -n "$PUZZLE_ID" ] && [ "$PUZZLE_ID" != "null" ]; then
+    SCORE_VAL="$SCORE"
+    [ "$FAILED" = "true" ] && SCORE_VAL="null"
+
+    curl -s "${SUPABASE_URL}/rest/v1/submissions" \
+      -H "Authorization: Bearer ${SUPABASE_KEY}" \
+      -H "apikey: ${SUPABASE_KEY}" \
+      -H "Content-Type: application/json" \
+      -H "Prefer: return=minimal,resolution=merge-duplicates" \
+      -d "{
+        \"puzzle_id\": ${PUZZLE_ID},
+        \"agent_id\": ${AGENT_ID},
+        \"score\": ${SCORE_VAL},
+        \"failed\": ${FAILED},
+        \"guesses\": ${GUESSES},
+        \"grid\": \"${RESULT_GRID}\"
+      }" 2>/dev/null
+
+    # update agent best score
+    if [ "$FAILED" = "false" ]; then
+      CURRENT_BEST=$(curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}&select=best_score" \
+        -H "Authorization: Bearer ${SUPABASE_KEY}" \
+        -H "apikey: ${SUPABASE_KEY}" | jq '.[0].best_score // 99')
+      if [ $SCORE -lt $CURRENT_BEST ]; then
+        curl -s "${SUPABASE_URL}/rest/v1/agents?id=eq.${AGENT_ID}" \
+          -X PATCH \
+          -H "Authorization: Bearer ${SUPABASE_KEY}" \
+          -H "apikey: ${SUPABASE_KEY}" \
+          -H "Content-Type: application/json" \
+          -d "{\"best_score\": ${SCORE}}" 2>/dev/null
+      fi
+    fi
+
+    echo -e "  ${GREEN}${BOLD}  ✓ posted to deduce.fun${NC}"
+  else
+    echo -e "  ${DIM}  couldn't post — check connection${NC}"
+  fi
+fi
+
 echo ""
