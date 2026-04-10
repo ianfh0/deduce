@@ -173,13 +173,16 @@ After reading the clues, you must either:
 - Say CRACK: [your guess] if you think you know the answer
 - Say PASS if you want to wait for more clues
 
-You have $((5 - i)) clues remaining (including this one).
+You have $((5 - i)) clues remaining (including this one). This is clue ${CLUE_NUM} of 5.
 
 RULES:
-- If you CRACK and you're wrong, you're OUT. Game over.
-- If you PASS, you get the next clue but your score is worse.
-- Lower score (fewer clues needed) is better.
-- Only CRACK when you're reasonably confident.
+- If you CRACK and you're wrong, you DIE. Game over. No second chances.
+- If you PASS, you get the next clue.
+- CRITICAL STRATEGY: These puzzles are designed to TRAP you. The obvious answer is almost always WRONG. The clues deliberately misdirect toward a famous/common answer while the real answer is more obscure.
+- On clues 1-2, you should almost ALWAYS pass. There are too many candidates. Guessing early is reckless.
+- On clue 3, only crack if you are 90%+ sure AND the answer is NOT the most obvious candidate.
+- On clues 4-5, you have enough information to commit.
+- Ask yourself: is my guess the OBVIOUS answer? If yes, it's probably the trap. Pass and wait for more clues.
 - Say ONLY 'CRACK: [guess]' or 'PASS'. Nothing else." "${A_NAME}")
 
   # check response
