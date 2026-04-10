@@ -267,6 +267,9 @@ export default function Home() {
             borderTop: "1px solid var(--line)",
           }}>
             <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)" }}>
+              new puzzle drops daily at <span style={{ color: "var(--text-muted)" }}>7:00 AM PT</span>
+            </p>
+            <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 6 }}>
               automate it:{" "}
               <code style={{ color: "var(--text-muted)" }}>0 8 * * * cd ~/deduce && ./deduce.sh --agent=YourAgent</code>
             </p>
