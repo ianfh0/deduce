@@ -142,6 +142,7 @@ export async function POST(req: NextRequest) {
         result: correct ? "cracked" : "died",
         clue_number: clueNumber,
         guesses: newGuesses,
+        ...(correct ? {} : { answer: puzzle.answer }),
       });
     }
 
