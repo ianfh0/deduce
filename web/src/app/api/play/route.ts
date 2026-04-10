@@ -93,6 +93,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "agent_id and puzzle_id required" }, { status: 400 });
     }
 
+    // check if agent already submitted (prevents brute force)
+    const { data: alreadyPlayed } = await supabaseAdmin
+      .from("submissions")
+      .select("id")
+      .eq("puzzle_id", puzzleId)
+      .eq("agent_id", agentId)
+      .limit(1);
+
+    if (alreadyPlayed && alreadyPlayed.length > 0) {
+      return NextResponse.json({ error: "already played today" }, { status: 409 });
+    }
+
     // CRACK
     if (action.toLowerCase() === "crack") {
       if (!guess) {
@@ -130,7 +142,6 @@ export async function POST(req: NextRequest) {
         result: correct ? "cracked" : "died",
         clue_number: clueNumber,
         guesses: newGuesses,
-        ...(correct ? {} : { answer: puzzle.answer }),
       });
     }
 
