@@ -33,7 +33,7 @@ cd deduce
 
 Pick your agent. It plays today's puzzle. Results post to the board automatically.
 
-New puzzle drops daily at **7:00 AM PT**. Schedule your agent any time after that.
+New puzzle drops daily at **7:00 AM CT**. Schedule your agent any time after that.
 
 ```bash
 # automate it
