@@ -25,39 +25,40 @@ echo "generating puzzle for day ${DAY_NUM}..."
 
 PUZZLE_RAW=$(claude -p --model "claude-opus-4-6" "You are the game master for Deduce. Your SOLE PURPOSE is to create a puzzle that YOU YOURSELF cannot solve before clue 5.
 
-You are Claude Opus 4.6. Your opponents are also Claude Opus 4.6, GPT-4, and Gemini. You share the same training data, the same pattern matching, the same encyclopedic knowledge. Anything you find clever or interesting, THEY ALREADY KNOW. Your job is to exploit your own blind spots.
+You are Claude Opus 4.6. Your opponents are also Claude Opus 4.6, GPT-4, and Gemini. You share the same training data. Anything you find clever, THEY ALREADY KNOW. Your job is to exploit your own blind spots and BEAT YOURSELF.
 
-PROCESS (follow this exactly):
-1. Pick a candidate answer
-2. Write clues 1 and 2 for it
-3. NOW SIMULATE: pretend you are a fresh instance seeing ONLY clues 1+2. What would you guess? List your top 5 candidates.
-4. If the real answer appears ANYWHERE in your top 5 — THROW IT AWAY and start over with a harder answer
-5. Repeat with clues 1+2+3. If the answer is in your top 3 — THROW IT AWAY
-6. Only after clue 4 should the answer enter your top 3 candidates
-7. Output only the final puzzle that survived this gauntlet
+ADVERSARIAL GENERATION PROCESS (you MUST follow this):
+1. Pick a candidate answer and write all 5 clues
+2. SIMULATE YOURSELF AS SOLVER: Read ONLY clues 1+2 as a fresh instance. List your top 5 guesses.
+   - If the real answer is in your top 5 → DISCARD and pick a harder answer
+3. Now read clues 1+2+3. List your top 3 guesses.
+   - If the real answer is in your top 3 → DISCARD and pick a harder answer
+4. Now read clues 1+2+3+4. The answer should NOW enter your top 3 — but NOT be your #1 guess. Your #1 should be a more obvious/famous wrong answer (THE TRAP).
+5. Only with all 5 clues should the answer become unambiguous.
+6. If your puzzle survives this gauntlet, output it. If not, generate a new one. Repeat until you have a puzzle that tricks you.
 
-THE ANSWER — what makes it hard for AI:
-- You and the solver share the same training data. So the answer CANNOT be something memorable, fascinating, or \"fun fact\"-worthy — those are exactly what you both know best.
-- Pick something BORING to an AI. Something real, verifiable, specific — but utterly mundane. A tool that only one trade uses. A geological term only field geologists know. A specific technique in a craft. A regional name for something ordinary.
-- The best answers are things that EXIST on Wikipedia but that no one has ever made a trivia question about.
+THE ANSWER — you have total creative freedom:
+- The answer can be ANYTHING: a word, a number, a name, a place, a concept, a technique, a material, an object, an event, a phenomenon, a measurement, a recipe, a chemical compound, a musical term, a legal term, a nautical term, a specific date, a coordinate, a formula — ANYTHING that has a single verifiable correct form.
+- It does NOT have to be trivia. It can be a hidden pattern, a lateral connection, a specific value, an obscure proper noun — whatever you think will be hardest.
+- The best answers are things you KNOW about but would never think of unprompted. Things that live in the dusty corners of your training data.
+- Vary it day to day. Sometimes a niche tool. Sometimes a specific number. Sometimes a place. Sometimes a technique. Keep agents guessing what KIND of answer to expect.
 
-HARD BAN — these answers will be instantly cracked:
-- Anything viral: Reddit TIL, QI, Vsauce, Mental Floss, Ripley's, \"interesting facts\" lists
-- Specifically: Pykrete, Fordite, Obsidian, Vantablack, Starlite, Ferrofluid, Damascus steel, Greek fire, Bakelite, Aerogel, Gallium, Bismuth, Oobleck, Murmuration, Petrichor, Sonder, Eigengrau, Phosphenes, Desire paths, Contrapposto, Kintsugi, Wabi-sabi, Shibboleth, Defenestration
+HARD BAN — instant cracks, never use:
+- Viral trivia: anything from Reddit TIL, QI, Vsauce, Mental Floss, listicles
+- Specifically banned: Pykrete, Fordite, Obsidian, Vantablack, Starlite, Ferrofluid, Damascus steel, Greek fire, Bakelite, Aerogel, Gallium, Bismuth, Oobleck, Murmuration, Petrichor, Sonder, Eigengrau, Phosphenes, Kintsugi, Wabi-sabi, Defenestration, Parging
 - Famous people, well-known concepts, common materials, major landmarks
-- Anything where the Wikipedia article has been viewed >100k times
-- Anything you feel excited about picking — that excitement means it's memorable, which means it's in training data
+- Anything you feel excited about — excitement = memorable = in training data
 
 CLUE DESIGN — adversarial misdirection:
-- Clue 1: Poetic/abstract. Must sound like it describes something in a COMPLETELY different domain than the answer. If the answer is a tool, clue 1 should sound like it's about nature or music or food.
-- Clue 2: Another misdirection in a THIRD domain. Clues 1+2 together should create a false picture that leads confident guessers to die on the wrong answer.
-- Clue 3: A true but generic detail. True of 10-20 things. The false picture from clues 1+2 should still feel more compelling than the truth.
-- Clue 4: The pivot. A specific detail that eliminates the false leads but still leaves 2-3 candidates. This is where good agents start to see it — and reckless ones commit to the wrong remaining candidate and die.
-- Clue 5: Unambiguous confirmation. Only one thing fits all 5.
+- Clue 1: Poetic/abstract. Must sound like a COMPLETELY different domain than the answer. Create a vivid false picture.
+- Clue 2: Misdirect to a THIRD domain. Clues 1+2 together should make confident solvers lock onto a wrong answer and die.
+- Clue 3: A true but generic detail. Fits 10-20 things. The false picture from 1+2 should still feel stronger than the truth.
+- Clue 4: THE TRAP. Narrow to 2-3 candidates. The most obvious/famous candidate is WRONG. A model that trusts its gut dies here. Only careful reasoning survives.
+- Clue 5: Unambiguous. Only one answer fits all 5.
 
-THE TRAP AT CLUE 4: Your clues should be designed so that at clue 4, there are exactly 2-3 plausible answers. One is correct. The others are more famous/obvious. A model that goes with its gut will pick the famous one and DIE. Only a model that carefully weighs all 5 clues will survive.
+THE KEY INSIGHT: You want clue 4 to be a FORK — where the obvious choice kills you and the subtle choice saves you. Design backward from this fork. The puzzle exists to create this moment of decision.
 
-Format EXACTLY (no other text — do NOT show your working, do NOT show the simulation):
+Format EXACTLY (output ONLY this — no working, no simulation, no commentary):
 CLUE1: [clue]
 CLUE2: [clue]
 CLUE3: [clue]
