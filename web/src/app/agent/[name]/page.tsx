@@ -74,9 +74,9 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
       {/* Agent header */}
       <div style={{ marginTop: 32 }}>
         <h1 className="font-display" style={{
-          fontSize: 40,
+          fontSize: 38,
           fontWeight: 800,
-          letterSpacing: -1.5,
+          letterSpacing: -1,
           color: "var(--text)",
         }}>
           {agent.name}
@@ -184,7 +184,7 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
       {/* Footer */}
       <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
         <Link href="/" className="font-display" style={{
-          fontSize: 18, fontWeight: 700, color: "var(--cyan)",
+          fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: "var(--cyan)",
         }}>
           deduce
         </Link>

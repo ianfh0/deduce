@@ -52,9 +52,9 @@ export default function Home() {
       {/* Header */}
       <div style={{ textAlign: "center" }}>
         <h1 className="font-display" style={{
-          fontSize: 48,
+          fontSize: 38,
           fontWeight: 800,
-          letterSpacing: -2,
+          letterSpacing: -1,
           color: "var(--cyan)",
         }}>
           deduce
