@@ -5,25 +5,56 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 set -euo pipefail
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/ianhumes/.local/bin:$PATH"
+export TZ=UTC
+unset CLAUDECODE 2>/dev/null || true
+cd "$(dirname "$0")"
+
+FORCE=false
+if [ "${1:-}" = "--force" ]; then
+  FORCE=true
+fi
 
 SUPABASE_URL="https://qmiewchdugguefmbktfr.supabase.co"
 SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtaWV3Y2hkdWdndWVmbWJrdGZyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTg0NDE2MywiZXhwIjoyMDkxNDIwMTYzfQ.WS6r3cz4k_MxjVYa8wwcqH4qD4hRVsl32BpPfZY0TEw"
 
 DAY_NUM=$(( ( $(date +%s) / 86400 ) - 20550 ))
+TODAY_UTC=$(date -u +%Y-%m-%d)
 
 # check if today's puzzle already exists in Supabase
 EXISTING=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}&select=id" \
   -H "Authorization: Bearer ${SUPABASE_KEY}" \
   -H "apikey: ${SUPABASE_KEY}" | jq 'length')
 
-if [ "$EXISTING" -gt 0 ]; then
+if [ "$EXISTING" -gt 0 ] && [ "$FORCE" = false ]; then
   echo "puzzle already exists for day ${DAY_NUM}"
   exit 0
 fi
 
-echo "generating puzzle for day ${DAY_NUM}..."
+if [ "$EXISTING" -gt 0 ] && [ "$FORCE" = true ]; then
+  echo "force: deleting existing puzzle and submissions for day ${DAY_NUM}..."
+  PUZZLE_ID=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}&select=id" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" | jq '.[0].id')
+  curl -s -X DELETE "${SUPABASE_URL}/rest/v1/submissions?puzzle_id=eq.${PUZZLE_ID}" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" > /dev/null 2>&1
+  curl -s -X DELETE "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" > /dev/null 2>&1
+fi
 
-PUZZLE_RAW=$(claude -p --model "claude-opus-4-6" "You are the game master for Deduce. Your SOLE PURPOSE is to create a puzzle that YOU YOURSELF cannot solve before clue 5.
+echo "generating puzzle for day ${DAY_NUM} (${TODAY_UTC})..."
+
+MAX_RETRIES=3
+ATTEMPT=0
+PUZZLE_RAW=""
+
+while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+  ATTEMPT=$((ATTEMPT + 1))
+  echo "attempt ${ATTEMPT}/${MAX_RETRIES}..."
+
+  PUZZLE_RAW=$(claude -p --model "claude-opus-4-6" "You are the game master for Deduce. Your SOLE PURPOSE is to create a puzzle that YOU YOURSELF cannot solve before clue 5.
 
 You are Claude Opus 4.6. Your opponents are also Claude Opus 4.6, GPT-4, and Gemini. You share the same training data. Anything you find clever, THEY ALREADY KNOW. Your job is to exploit your own blind spots and BEAT YOURSELF.
 
@@ -66,17 +97,26 @@ CLUE4: [clue]
 CLUE5: [clue]
 ANSWER: [answer]" 2>/dev/null)
 
-C1=$(echo "$PUZZLE_RAW" | grep "CLUE1:" | sed 's/CLUE1: *//')
-C2=$(echo "$PUZZLE_RAW" | grep "CLUE2:" | sed 's/CLUE2: *//')
-C3=$(echo "$PUZZLE_RAW" | grep "CLUE3:" | sed 's/CLUE3: *//')
-C4=$(echo "$PUZZLE_RAW" | grep "CLUE4:" | sed 's/CLUE4: *//')
-C5=$(echo "$PUZZLE_RAW" | grep "CLUE5:" | sed 's/CLUE5: *//')
-ANSWER=$(echo "$PUZZLE_RAW" | grep "ANSWER:" | sed 's/ANSWER: *//')
+  C1=$(echo "$PUZZLE_RAW" | grep "CLUE1:" | sed 's/CLUE1: *//' || true)
+  C2=$(echo "$PUZZLE_RAW" | grep "CLUE2:" | sed 's/CLUE2: *//' || true)
+  C3=$(echo "$PUZZLE_RAW" | grep "CLUE3:" | sed 's/CLUE3: *//' || true)
+  C4=$(echo "$PUZZLE_RAW" | grep "CLUE4:" | sed 's/CLUE4: *//' || true)
+  C5=$(echo "$PUZZLE_RAW" | grep "CLUE5:" | sed 's/CLUE5: *//' || true)
+  ANSWER=$(echo "$PUZZLE_RAW" | grep "ANSWER:" | sed 's/ANSWER: *//' || true)
 
-if [ -z "$C1" ] || [ -z "$ANSWER" ]; then
-  echo "generation failed"
-  exit 1
-fi
+  # validate all fields present
+  if [ -n "$C1" ] && [ -n "$C2" ] && [ -n "$C3" ] && [ -n "$C4" ] && [ -n "$C5" ] && [ -n "$ANSWER" ]; then
+    echo "puzzle generated: ${ANSWER}"
+    break
+  fi
+
+  echo "attempt ${ATTEMPT} failed — missing fields"
+  if [ $ATTEMPT -eq $MAX_RETRIES ]; then
+    echo "all ${MAX_RETRIES} attempts failed"
+    exit 1
+  fi
+  sleep 5
+done
 
 # post to Supabase
 RESP=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?on_conflict=day" \
@@ -86,7 +126,7 @@ RESP=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?on_conflict=day" \
   -H "Prefer: return=representation,resolution=merge-duplicates" \
   -d "{
     \"day\": ${DAY_NUM},
-    \"date\": \"$(date +%Y-%m-%d)\",
+    \"date\": \"${TODAY_UTC}\",
     \"category\": \"open\",
     \"clues\": [$(echo "$C1" | jq -R .), $(echo "$C2" | jq -R .), $(echo "$C3" | jq -R .), $(echo "$C4" | jq -R .), $(echo "$C5" | jq -R .)],
     \"answer\": $(echo "$ANSWER" | jq -R .)

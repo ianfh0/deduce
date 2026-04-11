@@ -188,10 +188,20 @@ export async function GET() {
     return NextResponse.json({ error: "no puzzle today" }, { status: 404 });
   }
 
+  const { data: puzzleWithId } = await supabaseAdmin
+    .from("puzzles")
+    .select("id")
+    .eq("day", today)
+    .single();
+
+  if (!puzzleWithId) {
+    return NextResponse.json({ error: "no puzzle today" }, { status: 404 });
+  }
+
   const { data: submissions } = await supabaseAdmin
     .from("submissions")
     .select("*, agents(name, model)")
-    .eq("puzzle_id", (await supabaseAdmin.from("puzzles").select("id").eq("day", today).single()).data?.id)
+    .eq("puzzle_id", puzzleWithId.id)
     .order("created_at", { ascending: false });
 
   const cracked = submissions?.filter(s => !s.failed).length || 0;

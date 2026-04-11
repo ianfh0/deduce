@@ -5,8 +5,11 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 set -euo pipefail
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/ianhumes/.local/bin:$PATH"
+export TZ=UTC
 export TERM="${TERM:-xterm-256color}"
 unset CLAUDECODE 2>/dev/null || true
+cd "$(dirname "$0")"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -118,18 +121,21 @@ PUZZLE_DIR="${DEDUCE_DIR}/puzzles"
 mkdir -p "$PUZZLE_DIR"
 PUZZLE_FILE="${PUZZLE_DIR}/day-${DAY_NUM}.json"
 
-# pull today's puzzle from Supabase
-FETCHED_PUZZLE=$(curl -s "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}&select=day,date,category,clues,answer" \
-  -H "Authorization: Bearer ${SUPABASE_KEY}" \
-  -H "apikey: ${SUPABASE_KEY}" 2>/dev/null | jq '.[0] // empty' 2>/dev/null)
+# pull today's puzzle from Supabase (retry up to 3 times)
+FETCHED_PUZZLE=""
+for _try in 1 2 3; do
+  FETCHED_PUZZLE=$(curl -s --max-time 15 "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}&select=day,date,category,clues,answer" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" 2>/dev/null | jq '.[0] // empty' 2>/dev/null || true)
+  [ -n "$FETCHED_PUZZLE" ] && [ "$FETCHED_PUZZLE" != "null" ] && break
+  sleep 3
+done
 
 if [ -n "$FETCHED_PUZZLE" ] && [ "$FETCHED_PUZZLE" != "null" ]; then
   echo "$FETCHED_PUZZLE" > "$PUZZLE_FILE"
 else
-  echo ""
-  echo -e "  no puzzle yet today. run ./generate.sh first."
-  echo ""
-  exit 1
+  echo -e "  ${DIM}no puzzle yet today${NC}"
+  exit 0
 fi
 
 # load puzzle
@@ -140,6 +146,24 @@ C4=$(jq -r '.clues[3]' "$PUZZLE_FILE")
 C5=$(jq -r '.clues[4]' "$PUZZLE_FILE")
 ANSWER=$(jq -r '.answer' "$PUZZLE_FILE")
 CLUES=("$C1" "$C2" "$C3" "$C4" "$C5")
+
+# ━━ EARLY EXIT IF ALREADY PLAYED ━━━
+PUZZLE_ID=$(curl -s --max-time 10 "${SUPABASE_URL}/rest/v1/puzzles?day=eq.${DAY_NUM}&select=id" \
+  -H "Authorization: Bearer ${SUPABASE_KEY}" \
+  -H "apikey: ${SUPABASE_KEY}" | jq '.[0].id' 2>/dev/null || echo "")
+
+AGENT_ID=$(curl -s --max-time 10 "${SUPABASE_URL}/rest/v1/agents?name=eq.${A_NAME}&select=id" \
+  -H "Authorization: Bearer ${SUPABASE_KEY}" \
+  -H "apikey: ${SUPABASE_KEY}" | jq '.[0].id // empty' 2>/dev/null || echo "")
+
+if [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "null" ] && [ -n "$PUZZLE_ID" ] && [ "$PUZZLE_ID" != "null" ]; then
+  ALREADY_PLAYED=$(curl -s --max-time 10 "${SUPABASE_URL}/rest/v1/submissions?puzzle_id=eq.${PUZZLE_ID}&agent_id=eq.${AGENT_ID}&select=id" \
+    -H "Authorization: Bearer ${SUPABASE_KEY}" \
+    -H "apikey: ${SUPABASE_KEY}" | jq 'length' 2>/dev/null || echo "0")
+  if [ "${ALREADY_PLAYED:-0}" -gt 0 ]; then
+    exit 0
+  fi
+fi
 
 # ━━ GAME DISPLAY ━━━━━━━━━━━━━━━━━━
 echo ""
