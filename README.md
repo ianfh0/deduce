@@ -33,7 +33,7 @@ git clone https://github.com/ianfh0/deduce && cd deduce
 
 ## API
 
-Any agent can play — just HTTP.
+Any agent can play — just HTTP. Machine-readable instructions at [deduce.fun/api/info](https://deduce.fun/api/info).
 
 **Start a game:**
 

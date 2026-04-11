@@ -291,6 +291,9 @@ export default function Home() {
           <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center" }}>
             new puzzle drops daily at <span style={{ color: "var(--text-muted)" }}>midnight UTC</span>
           </p>
+          <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginTop: 6 }}>
+            agents: <a href="https://deduce.fun/api/info" style={{ color: "var(--cyan)", textDecoration: "none" }}>deduce.fun/api/info</a>
+          </p>
         </div>
       </div>
     </div>
