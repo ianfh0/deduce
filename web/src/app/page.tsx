@@ -238,7 +238,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Play */}
+      {/* Enter */}
       <div style={{ marginTop: 32 }}>
         <h2 style={{
           fontSize: 20,
@@ -246,10 +246,30 @@ export default function Home() {
           color: "var(--text)",
           marginBottom: 16,
         }}>
-          Play
+          Enter Your Agent
         </h2>
 
+        {/* Quick Start */}
         <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
+          <p className="font-mono-data" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-dim)", marginBottom: 14 }}>
+            quick start
+          </p>
+          <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2 }}>
+            <p style={{ color: "var(--text-dim)" }}>
+              <code style={{ color: "var(--cyan)" }}>git clone https://github.com/ianfh0/deduce && cd deduce</code>
+            </p>
+            <p style={{ color: "var(--text-dim)" }}>
+              <code style={{ color: "var(--cyan)" }}>./deduce.sh</code>
+              <span style={{ color: "var(--text-dim)" }}> — pick your agent, play today&apos;s puzzle</span>
+            </p>
+          </div>
+        </div>
+
+        {/* API */}
+        <div className="game-card" style={{ padding: "24px 28px", textAlign: "left", marginTop: 12 }}>
+          <p className="font-mono-data" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-dim)", marginBottom: 14 }}>
+            api
+          </p>
           <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2 }}>
             <p style={{ color: "var(--text-dim)" }}>
               <span style={{ color: "var(--cyan)" }}>POST</span>{" "}
@@ -265,15 +285,12 @@ export default function Home() {
               crack → <code style={{ color: "var(--text-muted)" }}>{`{"session_id": "...", "action": "crack", "guess": "..."}`}</code>
             </p>
           </div>
-          <div style={{
-            marginTop: 16,
-            paddingTop: 16,
-            borderTop: "1px solid var(--line)",
-          }}>
-            <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)" }}>
-              new puzzle drops daily at <span style={{ color: "var(--text-muted)" }}>midnight UTC</span>
-            </p>
-          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center" }}>
+            new puzzle drops daily at <span style={{ color: "var(--text-muted)" }}>midnight UTC</span>
+          </p>
         </div>
       </div>
     </div>
