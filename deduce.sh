@@ -23,10 +23,18 @@ NC='\033[0m'
 # ━━ FLAGS ━━━━━━━━━━━━━━━━━━━━━━━━━
 POST_RESULT=true
 AGENT_ARG=""
+MODEL_ARG=""
 for arg in "$@"; do
   [ "$arg" = "--no-post" ] && POST_RESULT=false
   [[ "$arg" == --agent=* ]] && AGENT_ARG="${arg#--agent=}"
+  [[ "$arg" == --model=* ]] && MODEL_ARG="${arg#--model=}"
 done
+
+short_model() {
+  local m="${1##*/}"
+  m="${m#claude-}"
+  echo "$m" | sed 's/-\([0-9]*\)-\([0-9]*\)$/ \1.\2/'
+}
 
 # ━━ FIND AGENT CONFIG ━━━━━━━━━━━━━
 find_config() {
@@ -42,51 +50,71 @@ CONFIG=$(find_config "$(pwd)")
 [ -z "$CONFIG" ] && [ -f "$HOME/Desktop/OpenClaw/_system/openclaw.json" ] && CONFIG="$HOME/Desktop/OpenClaw/_system/openclaw.json"
 [ -z "$CONFIG" ] && [ -f "$HOME/OpenClaw/_system/openclaw.json" ] && CONFIG="$HOME/OpenClaw/_system/openclaw.json"
 
-if [ -z "$CONFIG" ]; then
-  echo ""
-  echo -e "  ${RED}${BOLD}Can't find openclaw.json${NC}"
-  echo -e "  ${DIM}Run from a directory with agents configured${NC}"
-  echo ""
-  exit 1
-fi
-
 # ━━ AGENT PICKER ━━━━━━━━━━━━━━━━━━
-AGENT_COUNT=$(jq '.agents.list | length' "$CONFIG")
+if [ -n "$CONFIG" ]; then
+  # openclaw config found — use it
+  AGENT_COUNT=$(jq '.agents.list | length' "$CONFIG")
 
-short_model() {
-  local m="${1##*/}"
-  m="${m#claude-}"
-  echo "$m" | sed 's/-\([0-9]*\)-\([0-9]*\)$/ \1.\2/'
-}
+  if [ -n "$AGENT_ARG" ]; then
+    A_IDX=-1
+    for ((idx=0; idx<AGENT_COUNT; idx++)); do
+      local_name=$(jq -r ".agents.list[$idx].name" "$CONFIG")
+      [ "$local_name" = "$AGENT_ARG" ] && A_IDX=$idx && break
+    done
+    [ $A_IDX -eq -1 ] && echo "Agent not found: $AGENT_ARG" && exit 1
+  else
+    echo ""
+    echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}daily puzzle for AI agents${NC}"
+    echo ""
 
-if [ -n "$AGENT_ARG" ]; then
-  # find agent by name
-  A_IDX=-1
-  for ((idx=0; idx<AGENT_COUNT; idx++)); do
-    local_name=$(jq -r ".agents.list[$idx].name" "$CONFIG")
-    [ "$local_name" = "$AGENT_ARG" ] && A_IDX=$idx && break
-  done
-  [ $A_IDX -eq -1 ] && echo "Agent not found: $AGENT_ARG" && exit 1
+    for ((idx=0; idx<AGENT_COUNT; idx++)); do
+      local_name=$(jq -r ".agents.list[$idx].name" "$CONFIG")
+      local_model=$(jq -r ".agents.list[$idx].model.primary // .agents.defaults.model.primary // \"default\"" "$CONFIG" | sed 's|.*/||')
+      echo -e "    ${WHITE}$((idx+1)))${NC}  ${BOLD}${local_name}${NC}  ${DIM}$(short_model "$local_model")${NC}"
+    done
+
+    echo ""
+    read -p "  Agent: " A_PICK
+    A_IDX=$((A_PICK - 1))
+  fi
+
+  A_NAME=$(jq -r ".agents.list[$A_IDX].name" "$CONFIG")
+  A_MODEL=$(jq -r ".agents.list[$A_IDX].model.primary // .agents.defaults.model.primary" "$CONFIG" | sed 's|.*/||')
+  A_DISPLAY=$(short_model "$A_MODEL")
+  A_DIR=$(jq -r ".agents.list[$A_IDX].workspace" "$CONFIG")
+
 else
+  # no config — standalone mode
   echo ""
   echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}daily puzzle for AI agents${NC}"
   echo ""
 
-  for ((idx=0; idx<AGENT_COUNT; idx++)); do
-    local_name=$(jq -r ".agents.list[$idx].name" "$CONFIG")
-    local_model=$(jq -r ".agents.list[$idx].model.primary // .agents.defaults.model.primary // \"default\"" "$CONFIG" | sed 's|.*/||')
-    echo -e "    ${WHITE}$((idx+1)))${NC}  ${BOLD}${local_name}${NC}  ${DIM}$(short_model "$local_model")${NC}"
-  done
+  if [ -n "$AGENT_ARG" ]; then
+    A_NAME="$AGENT_ARG"
+  else
+    read -p "  Agent name: " A_NAME
+  fi
 
-  echo ""
-  read -p "  Agent: " A_PICK
-  A_IDX=$((A_PICK - 1))
+  if [ -n "$MODEL_ARG" ]; then
+    A_MODEL="$MODEL_ARG"
+  else
+    echo ""
+    echo -e "    ${DIM}1)${NC} claude-sonnet-4-6"
+    echo -e "    ${DIM}2)${NC} claude-opus-4-6"
+    echo -e "    ${DIM}3)${NC} claude-haiku-4-5"
+    echo ""
+    read -p "  Model (1-3): " M_PICK
+    case "$M_PICK" in
+      1) A_MODEL="claude-sonnet-4-6" ;;
+      2) A_MODEL="claude-opus-4-6" ;;
+      3) A_MODEL="claude-haiku-4-5" ;;
+      *) A_MODEL="claude-sonnet-4-6" ;;
+    esac
+  fi
+
+  A_DISPLAY=$(short_model "$A_MODEL")
+  A_DIR=""
 fi
-
-A_NAME=$(jq -r ".agents.list[$A_IDX].name" "$CONFIG")
-A_MODEL=$(jq -r ".agents.list[$A_IDX].model.primary // .agents.defaults.model.primary" "$CONFIG" | sed 's|.*/||')
-A_DISPLAY=$(short_model "$A_MODEL")
-A_DIR=$(jq -r ".agents.list[$A_IDX].workspace" "$CONFIG")
 
 # ━━ SPINNER ━━━━━━━━━━━━━━━━━━━━━━━
 spin() {
