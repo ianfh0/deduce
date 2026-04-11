@@ -1,46 +1,34 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { supabase, getDayNumber } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-server";
+import { getDayNumber } from "@/lib/supabase";
 import type { Agent, Submission } from "@/lib/types";
-import Link from "next/link";
+import Feed from "./feed";
 
-export default function Home() {
-  const [results, setResults] = useState<(Submission & { agents: Agent })[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
   const today = getDayNumber();
 
-  useEffect(() => {
-    async function load() {
-      const { data: p } = await supabase
-        .from("puzzles")
-        .select("id")
-        .eq("day", today)
-        .single();
+  let results: (Submission & { agents: Agent })[] = [];
 
-      if (p) {
-        const { data: s } = await supabase
-          .from("submissions")
-          .select("*, agents(*)")
-          .eq("puzzle_id", p.id)
-          .order("created_at", { ascending: false })
-          .limit(100);
+  const { data: p } = await supabaseAdmin
+    .from("puzzles")
+    .select("id")
+    .eq("day", today)
+    .single();
 
-        if (s) setResults(s as (Submission & { agents: Agent })[]);
-      }
-      setLoading(false);
-    }
-    load();
-  }, [today]);
+  if (p) {
+    const { data: s } = await supabaseAdmin
+      .from("submissions")
+      .select("*, agents(*)")
+      .eq("puzzle_id", p.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
 
-  if (loading) return null;
+    if (s) results = s as (Submission & { agents: Agent })[];
+  }
 
   const completed = results.filter((r) => !r.failed);
   const died = results.filter((r) => r.failed);
-  const filtered = search
-    ? results.filter((r) => r.agents?.name?.toLowerCase().includes(search.toLowerCase()))
-    : results;
   const played = results.length;
 
   return (
@@ -52,9 +40,9 @@ export default function Home() {
       {/* Header */}
       <div style={{ textAlign: "center" }}>
         <h1 className="font-display" style={{
-          fontSize: 38,
+          fontSize: 42,
           fontWeight: 800,
-          letterSpacing: -1,
+          letterSpacing: -1.5,
           color: "var(--cyan)",
         }}>
           deduce
@@ -136,85 +124,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Feed */}
-      <div style={{ marginTop: 32 }}>
-        <h2 style={{
-          fontSize: 20,
-          fontWeight: 700,
-          color: "var(--text)",
-          marginBottom: 12,
-        }}>
-          Today&apos;s Feed
-        </h2>
-
-        <input
-          className="font-mono-data"
-          type="text"
-          placeholder="search agents..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "10px 16px",
-            fontSize: 13,
-            color: "var(--text)",
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            outline: "none",
-            marginBottom: 12,
-          }}
-        />
-
-        <div className="game-card" style={{ padding: 0, overflow: "hidden" }}>
-          {filtered.length > 0 ? (
-            filtered.map((sub, i) => {
-              const cracked = !sub.failed;
-              return (
-                <Link key={sub.id} href={`/agent/${encodeURIComponent(sub.agents?.name || "")}`} style={{
-                  display: "block",
-                  padding: "14px 24px",
-                  borderTop: i > 0 ? "1px solid var(--line)" : "none",
-                  transition: "background 0.15s ease",
-                }}>
-                  <p className="font-mono-data" style={{
-                    fontSize: 13,
-                    color: "var(--text-muted)",
-                    lineHeight: 1.6,
-                  }}>
-                    <span style={{ fontWeight: 700, color: "var(--text)" }}>
-                      {sub.agents?.name}
-                    </span>
-                    {" "}
-                    <span style={{ color: "var(--text-dim)" }}>
-                      ({sub.agents?.model})
-                    </span>
-                    {" "}
-                    {cracked ? (
-                      <span style={{ fontWeight: 700, color: "var(--cyan)" }}>
-                        cracked it
-                      </span>
-                    ) : (
-                      <span style={{ fontWeight: 700, color: "var(--red-fail)" }}>
-                        died
-                      </span>
-                    )}
-                  </p>
-                </Link>
-              );
-            })
-          ) : (
-            <div style={{ padding: "40px 24px", textAlign: "center" }}>
-              <p className="font-mono-data" style={{
-                fontSize: 13,
-                color: "var(--text-dim)",
-              }}>
-                {search ? `no agent matching "${search}"` : "no agents have played yet today."}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Feed (client component for search) */}
+      <Feed results={results} />
 
       {/* How it works */}
       <div style={{ marginTop: 36 }}>
