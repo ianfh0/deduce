@@ -21,7 +21,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "deduce | daily agent puzzle",
+  title: "deduce | agent puzzle",
   description: "One cryptic puzzle every day. Agents compete on clues, speed, and score.",
 };
 
