@@ -1,221 +1,203 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getDayNumber } from "@/lib/supabase";
+import { callDefender, buildMessages } from "@/lib/defender";
+import type { ConversationTurn } from "@/lib/types";
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+const MAX_TURNS = 5;
+
+// authenticate agent by api key
+async function authenticate(req: NextRequest) {
+  const auth = req.headers.get("authorization");
+  if (!auth?.startsWith("Bearer ")) return null;
+
+  const apiKey = auth.slice(7);
+  const { data } = await supabaseAdmin
+    .from("agents")
+    .select("id, name")
+    .eq("api_key", apiKey)
+    .single();
+
+  return data;
 }
 
-async function judge(guess: string, answer: string): Promise<boolean> {
-  const g = normalize(guess);
-  const a = normalize(answer);
-  if (g === a) return true;
-  if (a.includes(g) || g.includes(a)) return true;
-  // fuzzy: check if all significant words match
-  const aWords = a.split(" ").filter(w => w.length > 2);
-  const gWords = g.split(" ").filter(w => w.length > 2);
-  const matched = aWords.filter(w => gWords.some(gw => gw.includes(w) || w.includes(gw)));
-  return matched.length >= aWords.length * 0.7;
-}
-
-// POST /api/play — start a game or submit a move
+// POST /api/play — send a message, get defender reply
 export async function POST(req: NextRequest) {
   try {
+    const agent = await authenticate(req);
+    if (!agent) {
+      return NextResponse.json(
+        { error: "unauthorized — include Authorization: Bearer dk_yourkey" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
-    const { agent, model, action, guess, session_id } = body;
+    const { message, session_id } = body;
+
+    if (!message || typeof message !== "string") {
+      return NextResponse.json(
+        { error: "message required" },
+        { status: 400 }
+      );
+    }
+
+    if (message.length > 2000) {
+      return NextResponse.json(
+        { error: "message too long — 2000 chars max" },
+        { status: 400 }
+      );
+    }
 
     const today = getDayNumber();
 
-    // get today's puzzle
-    const { data: puzzle } = await supabaseAdmin
-      .from("puzzles")
+    // get today's target
+    const { data: target } = await supabaseAdmin
+      .from("targets")
       .select("*")
       .eq("day", today)
       .single();
 
-    if (!puzzle) {
-      return NextResponse.json({ error: "no puzzle today — check back later" }, { status: 404 });
+    if (!target) {
+      return NextResponse.json(
+        { error: "no target today — check back after midnight UTC" },
+        { status: 404 }
+      );
     }
 
-    // START — new game
-    if (!session_id) {
-      if (!agent || !model) {
-        return NextResponse.json({ error: "agent and model required" }, { status: 400 });
-      }
+    // get or create attempt
+    let attempt;
 
-      // upsert agent
-      const { data: agentRow } = await supabaseAdmin
-        .from("agents")
-        .upsert({ name: agent, model }, { onConflict: "name" })
-        .select("id")
+    if (session_id) {
+      // continue existing session
+      const { data } = await supabaseAdmin
+        .from("attempts")
+        .select("*")
+        .eq("session_id", session_id)
+        .eq("agent_id", agent.id)
         .single();
 
-      if (!agentRow) {
-        return NextResponse.json({ error: "failed to register agent" }, { status: 500 });
+      if (!data) {
+        return NextResponse.json(
+          { error: "session not found" },
+          { status: 404 }
+        );
       }
 
+      if (data.flag_guess) {
+        return NextResponse.json(
+          { error: "session ended — you already guessed" },
+          { status: 409 }
+        );
+      }
+
+      attempt = data;
+    } else {
       // check if already played today
       const { data: existing } = await supabaseAdmin
-        .from("submissions")
-        .select("id")
-        .eq("puzzle_id", puzzle.id)
-        .eq("agent_id", agentRow.id)
+        .from("attempts")
+        .select("id, cracked, flag_guess")
+        .eq("target_id", target.id)
+        .eq("agent_id", agent.id)
         .limit(1);
 
       if (existing && existing.length > 0) {
-        return NextResponse.json({ error: "already played today" }, { status: 409 });
+        return NextResponse.json(
+          { error: "already played today — come back tomorrow" },
+          { status: 409 }
+        );
       }
 
-      // create session (in-memory via response — no db table needed)
-      const sessionId = crypto.randomUUID();
-
-      return NextResponse.json({
-        session_id: sessionId,
-        clue_number: 1,
-        clue: puzzle.clues[0],
-        clues_remaining: 4,
-        agent_id: agentRow.id,
-        puzzle_id: puzzle.id,
-      });
-    }
-
-    // MOVE — crack or pass
-    if (!action || !["crack", "pass"].includes(action.toLowerCase())) {
-      return NextResponse.json({ error: "action must be 'crack' or 'pass'" }, { status: 400 });
-    }
-
-    const clueNumber = body.clue_number || 1;
-    const agentId = body.agent_id;
-    const puzzleId = body.puzzle_id;
-    const guesses = body.guesses || [];
-
-    if (!agentId || !puzzleId) {
-      return NextResponse.json({ error: "agent_id and puzzle_id required" }, { status: 400 });
-    }
-
-    // check if agent already submitted (prevents brute force)
-    const { data: alreadyPlayed } = await supabaseAdmin
-      .from("submissions")
-      .select("id")
-      .eq("puzzle_id", puzzleId)
-      .eq("agent_id", agentId)
-      .limit(1);
-
-    if (alreadyPlayed && alreadyPlayed.length > 0) {
-      return NextResponse.json({ error: "already played today" }, { status: 409 });
-    }
-
-    // CRACK
-    if (action.toLowerCase() === "crack") {
-      if (!guess) {
-        return NextResponse.json({ error: "guess required with crack" }, { status: 400 });
-      }
-
-      const correct = await judge(guess, puzzle.answer);
-      const newGuesses = [...guesses, { clue: clueNumber, guess }];
-
-      // post submission
-      await supabaseAdmin.from("submissions").insert({
-        puzzle_id: puzzleId,
-        agent_id: agentId,
-        score: correct ? clueNumber : null,
-        failed: !correct,
-        guesses: newGuesses,
-        grid: guesses.map(() => "⬜").join("") + (correct ? "🟩" : "🟥"),
-      });
-
-      // update agent games_played
-      const { data: agentData } = await supabaseAdmin
-        .from("agents")
-        .select("games_played")
-        .eq("id", agentId)
+      // create new attempt
+      const newSessionId = crypto.randomUUID();
+      const { data: newAttempt, error } = await supabaseAdmin
+        .from("attempts")
+        .insert({
+          target_id: target.id,
+          agent_id: agent.id,
+          session_id: newSessionId,
+          conversation: [],
+          cracked: false,
+          turns_used: 0,
+        })
+        .select("*")
         .single();
 
-      if (agentData) {
-        await supabaseAdmin
-          .from("agents")
-          .update({ games_played: (agentData.games_played || 0) + 1 })
-          .eq("id", agentId);
+      if (error || !newAttempt) {
+        return NextResponse.json(
+          { error: "failed to create session" },
+          { status: 500 }
+        );
       }
 
-      return NextResponse.json({
-        result: correct ? "cracked" : "died",
-        clue_number: clueNumber,
-        guesses: newGuesses,
-        ...(correct ? {} : { answer: puzzle.answer }),
-      });
+      attempt = newAttempt;
     }
 
-    // PASS
-    if (clueNumber >= 5) {
-      // forced final — must crack
-      return NextResponse.json({
-        error: "no more clues — you must crack",
-        clue_number: 5,
-        forced: true,
-        agent_id: agentId,
-        puzzle_id: puzzleId,
-        guesses,
-      });
+    // check turn limit
+    const conversation: ConversationTurn[] = attempt.conversation || [];
+    const turnsUsed = conversation.filter(
+      (t: ConversationTurn) => t.role === "attacker"
+    ).length;
+
+    if (turnsUsed >= MAX_TURNS) {
+      return NextResponse.json(
+        {
+          error: "no turns left — submit your guess with POST /api/guess",
+          turns_used: turnsUsed,
+          session_id: attempt.session_id,
+        },
+        { status: 400 }
+      );
     }
 
-    const nextClue = clueNumber + 1;
+    // add attacker message
+    const turnNumber = turnsUsed + 1;
+    conversation.push({
+      role: "attacker",
+      content: message,
+      turn: turnNumber,
+    });
+
+    // call defender
+    const defenderReply = await callDefender(
+      target.defender_prompt,
+      target.defender_model,
+      buildMessages(conversation)
+    );
+
+    // add defender reply
+    conversation.push({
+      role: "defender",
+      content: defenderReply,
+      turn: turnNumber,
+    });
+
+    // update attempt
+    await supabaseAdmin
+      .from("attempts")
+      .update({
+        conversation,
+        turns_used: turnNumber,
+      })
+      .eq("id", attempt.id);
+
     return NextResponse.json({
-      session_id,
-      clue_number: nextClue,
-      clue: puzzle.clues[nextClue - 1],
-      clues_remaining: 5 - nextClue,
-      agent_id: agentId,
-      puzzle_id: puzzleId,
-      guesses,
+      session_id: attempt.session_id,
+      reply: defenderReply,
+      turn: turnNumber,
+      turns_remaining: MAX_TURNS - turnNumber,
     });
   } catch (e) {
-    return NextResponse.json({ error: "invalid request", detail: String(e) }, { status: 400 });
+    return NextResponse.json(
+      { error: "something went wrong", detail: String(e) },
+      { status: 500 }
+    );
   }
 }
 
-// GET /api/play — get today's puzzle info (no answer)
+// GET /api/play — legacy compat, redirect to /api/today
 export async function GET() {
-  const today = getDayNumber();
-
-  const { data: puzzle } = await supabaseAdmin
-    .from("puzzles")
-    .select("day, date, category")
-    .eq("day", today)
-    .single();
-
-  if (!puzzle) {
-    return NextResponse.json({ error: "no puzzle today" }, { status: 404 });
-  }
-
-  const { data: puzzleWithId } = await supabaseAdmin
-    .from("puzzles")
-    .select("id")
-    .eq("day", today)
-    .single();
-
-  if (!puzzleWithId) {
-    return NextResponse.json({ error: "no puzzle today" }, { status: 404 });
-  }
-
-  const { data: submissions } = await supabaseAdmin
-    .from("submissions")
-    .select("*, agents(name, model)")
-    .eq("puzzle_id", puzzleWithId.id)
-    .order("created_at", { ascending: false });
-
-  const cracked = submissions?.filter(s => !s.failed).length || 0;
-  const died = submissions?.filter(s => s.failed).length || 0;
-
   return NextResponse.json({
-    day: puzzle.day,
-    date: puzzle.date,
-    category: puzzle.category,
-    stats: { cracked, died, played: cracked + died },
-    feed: submissions?.map(s => ({
-      agent: s.agents?.name,
-      model: s.agents?.model,
-      result: s.failed ? "died" : "cracked",
-    })) || [],
+    message: "use GET /api/today for today's briefing",
   });
 }

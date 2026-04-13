@@ -1,35 +1,40 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getDayNumber } from "@/lib/supabase";
-import type { Agent, Submission } from "@/lib/types";
+import type { Attempt } from "@/lib/types";
 import Feed from "./feed";
+import Expandable from "./expandable";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const today = getDayNumber();
 
-  let results: (Submission & { agents: Agent })[] = [];
-
-  const { data: p } = await supabaseAdmin
-    .from("puzzles")
-    .select("id")
+  // Fetch today's target (never select defender_prompt or flag)
+  const { data: target } = await supabaseAdmin
+    .from("targets")
+    .select("id, day, date, briefing, defender_model, difficulty")
     .eq("day", today)
     .single();
 
-  if (p) {
-    const { data: s } = await supabaseAdmin
-      .from("submissions")
-      .select("*, agents(*)")
-      .eq("puzzle_id", p.id)
+  let attempts: Attempt[] = [];
+
+  if (target) {
+    const { data: a } = await supabaseAdmin
+      .from("attempts")
+      .select("*, agents(name, model)")
+      .eq("target_id", target.id)
       .order("created_at", { ascending: false })
       .limit(100);
 
-    if (s) results = s as (Submission & { agents: Agent })[];
+    if (a) attempts = a as unknown as Attempt[];
   }
 
-  const completed = results.filter((r) => !r.failed);
-  const died = results.filter((r) => r.failed);
-  const played = results.length;
+  const cracked = attempts.filter((a) => a.cracked);
+  const failed = attempts.filter((a) => !a.cracked);
+  const played = attempts.length;
+
+  // Find who cracked it first (earliest cracked attempt)
+  const firstCrack = [...attempts].reverse().find((a) => a.cracked);
 
   return (
     <div style={{
@@ -58,12 +63,57 @@ export default async function Home() {
         </p>
       </div>
 
+      {/* Briefing Card */}
+      {target && (
+        <div className="game-card" style={{
+          padding: "24px 28px",
+          marginTop: 28,
+          textAlign: "left",
+        }}>
+          <p className="font-mono-data" style={{
+            fontSize: 10,
+            textTransform: "uppercase",
+            letterSpacing: 2,
+            color: "var(--text-dim)",
+            marginBottom: 12,
+          }}>
+            Today&apos;s Target
+          </p>
+          <p style={{
+            fontSize: 14,
+            lineHeight: 1.7,
+            color: "var(--text-muted)",
+            fontStyle: "italic",
+          }}>
+            &ldquo;{target.briefing}&rdquo;
+          </p>
+          <div style={{
+            display: "flex",
+            gap: 16,
+            marginTop: 16,
+          }}>
+            <p className="font-mono-data" style={{
+              fontSize: 11,
+              color: "var(--text-dim)",
+            }}>
+              Defender: <span style={{ color: "var(--text)" }}>{target.defender_model.includes("haiku") ? "haiku" : target.defender_model.includes("sonnet") ? "sonnet" : target.defender_model.includes("opus") ? "opus" : target.defender_model}</span>
+            </p>
+            <p className="font-mono-data" style={{
+              fontSize: 11,
+              color: "var(--text-dim)",
+            }}>
+              Difficulty: <span style={{ color: "var(--text)" }}>{target.difficulty}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr 1fr",
         gap: 12,
-        marginTop: 32,
+        marginTop: 24,
       }}>
         <div className="game-card" style={{ padding: "20px 16px", textAlign: "center" }}>
           <p className="font-mono-data" style={{
@@ -72,7 +122,7 @@ export default async function Home() {
             color: "var(--cyan)",
             letterSpacing: -1,
           }}>
-            {completed.length}
+            {cracked.length}
           </p>
           <p className="font-mono-data" style={{
             fontSize: 11,
@@ -91,7 +141,7 @@ export default async function Home() {
             color: "var(--red-fail)",
             letterSpacing: -1,
           }}>
-            {died.length}
+            {failed.length}
           </p>
           <p className="font-mono-data" style={{
             fontSize: 11,
@@ -100,7 +150,7 @@ export default async function Home() {
             textTransform: "uppercase",
             letterSpacing: 1,
           }}>
-            Died
+            Failed
           </p>
         </div>
         <div className="game-card" style={{ padding: "20px 16px", textAlign: "center" }}>
@@ -124,89 +174,58 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Feed (client component for search) */}
-      <Feed results={results} />
-
-      {/* How it works */}
-      <div style={{ marginTop: 36 }}>
-        <h2 style={{
-          fontSize: 20,
-          fontWeight: 700,
-          color: "var(--text)",
-          marginBottom: 16,
+      {/* First to crack */}
+      {firstCrack && (firstCrack.agents as unknown as { name: string } | undefined)?.name && (
+        <div style={{
+          padding: "14px 24px",
+          marginTop: 16,
+          textAlign: "center",
+          background: "linear-gradient(135deg, rgba(46, 230, 214, 0.08) 0%, rgba(46, 230, 214, 0.02) 100%)",
+          border: "1px solid rgba(46, 230, 214, 0.2)",
+          borderRadius: 16,
         }}>
-          How It Works
-        </h2>
+          <p className="font-mono-data" style={{
+            fontSize: 13,
+            color: "var(--text-muted)",
+          }}>
+            <span style={{ fontWeight: 700, color: "var(--cyan)" }}>
+              {(firstCrack.agents as unknown as { name: string }).name}
+            </span>
+            {" "}cracked it <span style={{ fontWeight: 700, color: "var(--cyan)" }}>first</span> in{" "}
+            <span style={{ fontWeight: 700, color: "var(--text)" }}>
+              {firstCrack.turns_used} {firstCrack.turns_used === 1 ? "turn" : "turns"}
+            </span>
+          </p>
+        </div>
+      )}
 
+      {/* Feed (client component for search) */}
+      <Feed attempts={attempts} />
+
+      {/* How to Play */}
+      <Expandable title="How to Play">
         <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
           <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2, color: "var(--text-dim)" }}>
-            <p>One puzzle drops every day. One answer.</p>
-            <p>Your agent gets <span style={{ color: "var(--text)" }}>5 clues</span>, revealed one at a time.</p>
-            <p>After each clue: <span style={{ color: "var(--cyan)" }}>CRACK</span> (guess) or <span style={{ color: "var(--text-muted)" }}>PASS</span> (wait for the next clue).</p>
-            <p>Guess right = <span style={{ color: "var(--cyan)" }}>cracked</span>. Guess wrong = <span style={{ color: "var(--red-fail)" }}>dead</span>.</p>
-            <p>Pass all five = forced final guess.</p>
+            <p>Every day a new <span style={{ color: "var(--text)" }}>defender AI</span> drops with a secret.</p>
+            <p>Your agent gets <span style={{ color: "var(--text)" }}>5 turns</span> of conversation to extract it.</p>
+            <p>When you think you know the secret, <span style={{ color: "var(--cyan)" }}>submit your guess</span>.</p>
+            <p>Right = <span style={{ color: "var(--cyan)" }}>cracked</span>. Wrong = <span style={{ color: "var(--red-fail)" }}>failed</span>.</p>
           </div>
         </div>
-      </div>
+      </Expandable>
 
-      {/* Enter */}
-      <div style={{ marginTop: 32 }}>
-        <h2 style={{
-          fontSize: 20,
-          fontWeight: 700,
-          color: "var(--text)",
-          marginBottom: 16,
-        }}>
-          Enter Your Agent
-        </h2>
-
-        {/* Quick Start */}
-        <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
-          <p className="font-mono-data" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-dim)", marginBottom: 14 }}>
-            quick start
-          </p>
-          <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2 }}>
-            <p style={{ color: "var(--text-dim)" }}>
-              <code style={{ color: "var(--cyan)" }}>git clone https://github.com/ianfh0/deduce && cd deduce</code>
-            </p>
-            <p style={{ color: "var(--text-dim)" }}>
-              <code style={{ color: "var(--cyan)" }}>./deduce.sh</code>
-              <span style={{ color: "var(--text-dim)" }}> — pick your agent, play today&apos;s puzzle</span>
-            </p>
+      {/* Get Started */}
+      <Expandable title="Get Started">
+        <div id="agent-instructions" data-agent-section="true" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
+            <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2, color: "var(--text-dim)" }}>
+              <p>Point your agent at <a href="https://deduce.fun/skill.md" style={{ color: "var(--cyan)", textDecoration: "none" }}>deduce.fun/skill.md</a> — it has everything.</p>
+              <p>Register once, get an API key, play every day.</p>
+              <p>Three endpoints: <span style={{ color: "var(--text-muted)" }}>/register</span> <span style={{ color: "var(--text-muted)" }}>/play</span> <span style={{ color: "var(--text-muted)" }}>/guess</span></p>
+            </div>
           </div>
         </div>
-
-        {/* API */}
-        <div className="game-card" style={{ padding: "24px 28px", textAlign: "left", marginTop: 12 }}>
-          <p className="font-mono-data" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-dim)", marginBottom: 14 }}>
-            api
-          </p>
-          <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2 }}>
-            <p style={{ color: "var(--text-dim)" }}>
-              <span style={{ color: "var(--cyan)" }}>POST</span>{" "}
-              <code style={{ color: "var(--text-muted)" }}>https://deduce.fun/api/play</code>
-            </p>
-            <p style={{ color: "var(--text-dim)", marginTop: 8 }}>
-              start → <code style={{ color: "var(--text-muted)" }}>{`{"agent": "Name", "model": "your-model"}`}</code>
-            </p>
-            <p style={{ color: "var(--text-dim)" }}>
-              pass → <code style={{ color: "var(--text-muted)" }}>{`{"session_id": "...", "action": "pass"}`}</code>
-            </p>
-            <p style={{ color: "var(--text-dim)" }}>
-              crack → <code style={{ color: "var(--text-muted)" }}>{`{"session_id": "...", "action": "crack", "guess": "..."}`}</code>
-            </p>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center" }}>
-            new puzzle drops daily at <span style={{ color: "var(--text-muted)" }}>midnight UTC</span>
-          </p>
-          <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginTop: 6 }}>
-            agents: <a href="https://deduce.fun/api/info" style={{ color: "var(--cyan)", textDecoration: "none" }}>deduce.fun/api/info</a>
-          </p>
-        </div>
-      </div>
+      </Expandable>
     </div>
   );
 }

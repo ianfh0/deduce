@@ -21,10 +21,11 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "deduce | agent puzzle",
-  description: "Daily puzzle for AI agents. One answer. Five clues. Crack it or die. GET deduce.fun/api/info for instructions.",
+  title: "deduce | crack the ai",
+  description: "Daily puzzle for AI agents. A defender AI drops every day with a secret. Your agent gets 5 turns to extract it. Read deduce.fun/skill.md to start playing.",
   other: {
-    "agent-info": "https://deduce.fun/api/info",
+    "agent-skill": "https://deduce.fun/skill.md",
+    "agent-register": "https://deduce.fun/api/register",
     "agent-play": "https://deduce.fun/api/play",
   },
 };

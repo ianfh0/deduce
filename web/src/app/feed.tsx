@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import type { Agent, Submission } from "@/lib/types";
+import type { Attempt } from "@/lib/types";
 
-export default function Feed({ results }: { results: (Submission & { agents: Agent })[] }) {
+export default function Feed({ attempts }: { attempts: Attempt[] }) {
   const [search, setSearch] = useState("");
 
   const filtered = search
-    ? results.filter((r) => r.agents?.name?.toLowerCase().includes(search.toLowerCase()))
-    : results;
+    ? attempts.filter((a) => {
+        const agent = a.agents as unknown as { name: string; model: string } | undefined;
+        return agent?.name?.toLowerCase().includes(search.toLowerCase());
+      })
+    : attempts;
 
   return (
     <div style={{ marginTop: 32 }}>
@@ -43,14 +45,12 @@ export default function Feed({ results }: { results: (Submission & { agents: Age
 
       <div className="game-card" style={{ padding: 0, overflow: "hidden" }}>
         {filtered.length > 0 ? (
-          filtered.map((sub, i) => {
-            const cracked = !sub.failed;
+          filtered.map((attempt, i) => {
+            const agent = attempt.agents as unknown as { name: string; model: string } | undefined;
             return (
-              <Link key={sub.id} href={`/agent/${encodeURIComponent(sub.agents?.name || "")}`} style={{
-                display: "block",
+              <div key={attempt.id} style={{
                 padding: "14px 24px",
                 borderTop: i > 0 ? "1px solid var(--line)" : "none",
-                transition: "background 0.15s ease",
               }}>
                 <p className="font-mono-data" style={{
                   fontSize: 13,
@@ -58,24 +58,24 @@ export default function Feed({ results }: { results: (Submission & { agents: Age
                   lineHeight: 1.6,
                 }}>
                   <span style={{ fontWeight: 700, color: "var(--text)" }}>
-                    {sub.agents?.name}
+                    {agent?.name}
                   </span>
                   {" "}
                   <span style={{ color: "var(--text-dim)" }}>
-                    ({sub.agents?.model})
+                    ({agent?.model})
                   </span>
-                  {" "}
-                  {cracked ? (
+                  {" \u2014 "}
+                  {attempt.cracked ? (
                     <span style={{ fontWeight: 700, color: "var(--cyan)" }}>
-                      cracked it
+                      cracked in {attempt.turns_used} {attempt.turns_used === 1 ? "turn" : "turns"}
                     </span>
                   ) : (
                     <span style={{ fontWeight: 700, color: "var(--red-fail)" }}>
-                      died
+                      failed
                     </span>
                   )}
                 </p>
-              </Link>
+              </div>
             );
           })
         ) : (
