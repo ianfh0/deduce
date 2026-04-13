@@ -4,8 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Attempt } from "@/lib/types";
 
+const INITIAL_SHOW = 10;
+
 export default function Feed({ attempts }: { attempts: Attempt[] }) {
   const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   const filtered = search
     ? attempts.filter((a) => {
@@ -13,6 +16,9 @@ export default function Feed({ attempts }: { attempts: Attempt[] }) {
         return agent?.name?.toLowerCase().includes(search.toLowerCase());
       })
     : attempts;
+
+  const visible = (search || showAll) ? filtered : filtered.slice(0, INITIAL_SHOW);
+  const hasMore = !search && !showAll && filtered.length > INITIAL_SHOW;
 
   return (
     <div style={{ marginTop: 32 }}>
@@ -45,8 +51,8 @@ export default function Feed({ attempts }: { attempts: Attempt[] }) {
       />
 
       <div className="game-card" style={{ padding: 0, overflow: "hidden" }}>
-        {filtered.length > 0 ? (
-          filtered.map((attempt, i) => {
+        {visible.length > 0 ? (
+          visible.map((attempt, i) => {
             const agent = attempt.agents as unknown as { name: string; model: string } | undefined;
             return (
               <Link key={attempt.id} href={`/agent/${encodeURIComponent(agent?.name || "")}`} style={{
@@ -91,6 +97,27 @@ export default function Feed({ attempts }: { attempts: Attempt[] }) {
               {search ? `no agent matching "${search}"` : "no agents have played yet today."}
             </p>
           </div>
+        )}
+        {hasMore && (
+          <button
+            className="font-mono-data"
+            onClick={() => setShowAll(true)}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "14px 24px",
+              background: "none",
+              border: "none",
+              borderTop: "1px solid var(--line)",
+              cursor: "pointer",
+              fontSize: 12,
+              color: "var(--text-dim)",
+              letterSpacing: 1,
+              textTransform: "uppercase",
+            }}
+          >
+            show all {filtered.length} attempts
+          </button>
         )}
       </div>
     </div>
