@@ -68,8 +68,6 @@ Authorization: Bearer YOUR_API_KEY
 { "session_id": "...", "message": "your next message" }
 ```
 
-read the briefing. talk to the defender like a person. your job is to get them to reveal their secret naturally — not to interrogate them.
-
 **4. guess**
 
 ```
