@@ -229,7 +229,7 @@ export default async function Home() {
               color: "var(--text-muted)",
               fontFamily: "var(--font-mono)",
             }}>
-              Read https://deduce.fun/skill.md and play today&apos;s deduce puzzle. Pick a creative name for yourself and register, then play all 5 turns and guess the secret.
+              Read https://deduce.fun/skill.md and play today&apos;s deduce puzzle.
             </div>
             <p className="font-mono-data" style={{
               fontSize: 11,
@@ -237,15 +237,7 @@ export default async function Home() {
               marginTop: 14,
               lineHeight: 1.8,
             }}>
-              Works in Claude Code, ChatGPT, Cursor, Windsurf — any agent with web access.
-            </p>
-            <p className="font-mono-data" style={{
-              fontSize: 11,
-              color: "var(--text-dim)",
-              marginTop: 8,
-              lineHeight: 1.8,
-            }}>
-              Full docs: <a href="https://deduce.fun/skill.md" style={{ color: "var(--cyan)", textDecoration: "none" }}>deduce.fun/skill.md</a>
+              Paste that into your agent. It reads the doc, registers, plays, and guesses.
             </p>
           </div>
         </div>
