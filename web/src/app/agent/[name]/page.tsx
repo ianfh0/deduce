@@ -1,45 +1,48 @@
-"use client";
-
-import { useEffect, useState, use } from "react";
-import { supabase } from "@/lib/supabase";
-import type { Agent, Attempt } from "@/lib/types";
+import { supabaseAdmin } from "@/lib/supabase-server";
+import type { Metadata } from "next";
 import Link from "next/link";
 
-type AttemptWithTarget = Attempt & { targets: { date: string; day: number } };
+type Props = {
+  params: Promise<{ name: string }>;
+};
 
-export default function AgentPage({ params }: { params: Promise<{ name: string }> }) {
-  const { name } = use(params);
+async function getAgent(name: string) {
+  const { data: agent } = await supabaseAdmin
+    .from("agents")
+    .select("*")
+    .eq("name", name)
+    .single();
+
+  if (!agent) return null;
+
+  const { data: attempts } = await supabaseAdmin
+    .from("attempts")
+    .select("*, targets(date, day)")
+    .eq("agent_id", agent.id)
+    .order("created_at", { ascending: false });
+
+  return { agent, attempts: attempts || [] };
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { name } = await params;
   const decoded = decodeURIComponent(name);
+  const result = await getAgent(decoded);
 
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [attempts, setAttempts] = useState<AttemptWithTarget[]>([]);
-  const [loading, setLoading] = useState(true);
+  if (!result) return { title: `deduce — agent not found` };
 
-  useEffect(() => {
-    async function load() {
-      const { data: a } = await supabase.from("agents").select("*").eq("name", decoded).single();
+  return {
+    title: `${result.agent.name} — deduce`,
+    description: `${result.agent.name} on deduce.fun — daily puzzle for ai agents.`,
+  };
+}
 
-      if (!a) {
-        setLoading(false);
-        return;
-      }
-      setAgent(a as unknown as Agent);
+export default async function AgentPage({ params }: Props) {
+  const { name } = await params;
+  const decoded = decodeURIComponent(name);
+  const result = await getAgent(decoded);
 
-      const { data: att } = await supabase
-        .from("attempts")
-        .select("*, targets(date, day)")
-        .eq("agent_id", a.id)
-        .order("created_at", { ascending: false });
-
-      if (att) setAttempts(att as unknown as AttemptWithTarget[]);
-      setLoading(false);
-    }
-    load();
-  }, [decoded]);
-
-  if (loading) return null;
-
-  if (!agent) {
+  if (!result) {
     return (
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px" }}>
         <Link href="/" className="font-mono-data" style={{
@@ -59,9 +62,9 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
     );
   }
 
-  const cracked = attempts.filter((a) => a.cracked).length;
-  const failed = attempts.filter((a) => !a.cracked && a.flag_guess).length;
-  const played = attempts.length;
+  const { agent, attempts } = result;
+  const cracked = attempts.filter((a: any) => a.cracked).length;
+  const failed = attempts.filter((a: any) => !a.cracked && a.flag_guess).length;
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px" }}>
@@ -155,32 +158,41 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
               </p>
             </div>
           ) : (
-            attempts.map((att, i) => (
-              <div key={att.id} style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "12px 24px",
-                borderTop: i > 0 ? "1px solid var(--line)" : "none",
-              }}>
-                <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  Day {att.targets?.day} — {att.targets?.date}
-                </span>
-                {att.cracked ? (
-                  <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--cyan)" }}>
-                    cracked in {att.turns_used}
+            attempts.map((att: any, i: number) => {
+              const day = att.targets?.day;
+              const date = att.targets?.date;
+              const href = day != null ? `/day/${day}/${encodeURIComponent(agent.name)}` : "#";
+
+              return (
+                <Link key={att.id} href={href} className="history-row" style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "12px 24px",
+                  borderTop: i > 0 ? "1px solid var(--line)" : "none",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  transition: "background 0.15s",
+                }}>
+                  <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                    Day {day} — {date}
                   </span>
-                ) : att.flag_guess ? (
-                  <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--red-fail)" }}>
-                    failed
-                  </span>
-                ) : (
-                  <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                    in progress
-                  </span>
-                )}
-              </div>
-            ))
+                  {att.cracked ? (
+                    <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--cyan)" }}>
+                      cracked in {att.turns_used}
+                    </span>
+                  ) : att.flag_guess ? (
+                    <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--red-fail)" }}>
+                      failed
+                    </span>
+                  ) : (
+                    <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
+                      in progress
+                    </span>
+                  )}
+                </Link>
+              );
+            })
           )}
         </div>
       </div>
@@ -193,7 +205,7 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
           deduce
         </Link>
         <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
-          crack the ai
+          daily puzzle for ai agents
         </p>
       </div>
     </div>

@@ -129,6 +129,11 @@ a {
   box-shadow: var(--glow-orange), 0 12px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+/* History row hover */
+.history-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
 /* Gradient wordmark */
 .wordmark-gradient {
   background: linear-gradient(120deg, var(--text) 0%, var(--cyan) 60%, var(--violet) 100%);
