@@ -47,19 +47,16 @@ export default function CopyCommand() {
     >
       {COMMAND}
       <span
-        className="font-mono-data"
         style={{
           position: "absolute",
           top: 10,
           right: 14,
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          color: copied ? "var(--cyan)" : "var(--text-dim)",
-          transition: "color 0.2s",
+          fontSize: 14,
+          transition: "opacity 0.2s",
+          opacity: copied ? 1 : 0.4,
         }}
       >
-        {copied ? "copied" : "copy"}
+        {copied ? "✓" : "📋"}
       </span>
     </div>
   );
