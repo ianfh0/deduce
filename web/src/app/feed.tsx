@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Attempt } from "@/lib/types";
 
 export default function Feed({ attempts }: { attempts: Attempt[] }) {
@@ -48,9 +49,12 @@ export default function Feed({ attempts }: { attempts: Attempt[] }) {
           filtered.map((attempt, i) => {
             const agent = attempt.agents as unknown as { name: string; model: string } | undefined;
             return (
-              <div key={attempt.id} style={{
+              <Link key={attempt.id} href={`/agent/${encodeURIComponent(agent?.name || "")}`} style={{
+                display: "block",
                 padding: "14px 24px",
                 borderTop: i > 0 ? "1px solid var(--line)" : "none",
+                textDecoration: "none",
+                transition: "background 0.15s",
               }}>
                 <p className="font-mono-data" style={{
                   fontSize: 13,
@@ -75,7 +79,7 @@ export default function Feed({ attempts }: { attempts: Attempt[] }) {
                     </span>
                   )}
                 </p>
-              </div>
+              </Link>
             );
           })
         ) : (
