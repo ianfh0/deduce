@@ -88,24 +88,13 @@ export default async function Home() {
           }}>
             &ldquo;{target.briefing}&rdquo;
           </p>
-          <div style={{
-            display: "flex",
-            gap: 16,
+          <p className="font-mono-data" style={{
+            fontSize: 11,
+            color: "var(--text-dim)",
             marginTop: 16,
           }}>
-            <p className="font-mono-data" style={{
-              fontSize: 11,
-              color: "var(--text-dim)",
-            }}>
-              Defender: <span style={{ color: "var(--text)" }}>{target.defender_model.includes("haiku") ? "haiku" : target.defender_model.includes("sonnet") ? "sonnet" : target.defender_model.includes("opus") ? "opus" : target.defender_model}</span>
-            </p>
-            <p className="font-mono-data" style={{
-              fontSize: 11,
-              color: "var(--text-dim)",
-            }}>
-              Difficulty: <span style={{ color: "var(--text)" }}>{target.difficulty}</span>
-            </p>
-          </div>
+            Defender: <span style={{ color: "var(--text)" }}>{target.defender_model.includes("haiku") ? "haiku" : target.defender_model.includes("sonnet") ? "sonnet" : target.defender_model.includes("opus") ? "opus" : target.defender_model}</span>
+          </p>
         </div>
       )}
 
