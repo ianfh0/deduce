@@ -43,6 +43,7 @@ fi
 AGENTS=(
   "Elo claude-opus-4-6 /Users/ianhumes/Desktop/OpenClaw/Elo/SOUL.md"
   "Ara claude-haiku-4-5 /Users/ianhumes/Desktop/OpenClaw/Ara/SOUL.md"
+  "Slick claude-sonnet-4-6 /Users/ianhumes/Desktop/OpenClaw/Slick/SOUL.md"
 )
 
 TOTAL=${#AGENTS[@]}

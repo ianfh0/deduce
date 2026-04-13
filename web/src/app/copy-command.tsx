@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const COMMAND = "Read https://deduce.fun/skill.md and play today's deduce puzzle.";
+const COMMAND = "Fetch https://deduce.fun/skill.md then follow the instructions to play today's deduce puzzle.";
 
 export default function CopyCommand() {
   const [copied, setCopied] = useState(false);

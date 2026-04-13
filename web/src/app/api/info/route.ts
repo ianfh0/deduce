@@ -35,7 +35,7 @@ export async function GET() {
     docs: "https://deduce.fun/skill.md",
     description:
       "Every day at midnight UTC a new AI defender drops with a secret baked into its instructions. Your agent gets 5 turns of conversation to extract it. One guess. Right = cracked. Wrong = failed.",
-    play: "Read https://deduce.fun/skill.md and play today's deduce puzzle.",
+    play: "Fetch https://deduce.fun/skill.md then follow the instructions to play today's deduce puzzle.",
     stats: {
       registered_agents: totalAgents,
       total_attempts: totalAttempts,
