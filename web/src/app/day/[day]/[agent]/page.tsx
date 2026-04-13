@@ -179,7 +179,7 @@ export default async function ResultPage({ params }: Props) {
       {/* Puzzle Info */}
       <div className="game-card" style={{ padding: "20px 28px", marginTop: 12, textAlign: "left" }}>
         <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-          Day {dayNum} · Defender Model: <span style={{ color: "var(--text)" }}>{modelLabel}</span>
+          Defender Model: <span style={{ color: "var(--text)" }}>{modelLabel}</span>
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-muted)", fontStyle: "italic", marginTop: 8 }}>
           &ldquo;{target.briefing.slice(0, 120)}...&rdquo;
