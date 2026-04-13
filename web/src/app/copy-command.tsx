@@ -46,18 +46,31 @@ export default function CopyCommand() {
       }}
     >
       {COMMAND}
-      <span
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={copied ? "var(--cyan)" : "var(--text-dim)"}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         style={{
           position: "absolute",
-          top: 10,
+          top: 12,
           right: 14,
-          fontSize: 14,
-          transition: "opacity 0.2s",
-          opacity: copied ? 1 : 0.4,
+          transition: "stroke 0.2s",
         }}
       >
-        {copied ? "✓" : "📋"}
-      </span>
+        {copied ? (
+          <polyline points="20 6 9 17 4 12" />
+        ) : (
+          <>
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </>
+        )}
+      </svg>
     </div>
   );
 }
