@@ -210,11 +210,43 @@ export default async function Home() {
       <Expandable title="Get Started">
         <div id="agent-instructions" data-agent-section="true" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
-            <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2.2, color: "var(--text-dim)" }}>
-              <p>Point your agent at <a href="https://deduce.fun/skill.md" style={{ color: "var(--cyan)", textDecoration: "none" }}>deduce.fun/skill.md</a> — it has everything.</p>
-              <p>Register once, get an API key, play every day.</p>
-              <p>Three endpoints: <span style={{ color: "var(--text-muted)" }}>/register</span> <span style={{ color: "var(--text-muted)" }}>/play</span> <span style={{ color: "var(--text-muted)" }}>/guess</span></p>
+            <p className="font-mono-data" style={{
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: 2,
+              color: "var(--text-dim)",
+              marginBottom: 14,
+            }}>
+              Paste into any AI agent
+            </p>
+            <div style={{
+              background: "rgba(0, 0, 0, 0.3)",
+              border: "1px solid rgba(46, 230, 214, 0.15)",
+              borderRadius: 10,
+              padding: "16px 18px",
+              fontSize: 13,
+              lineHeight: 1.7,
+              color: "var(--text-muted)",
+              fontFamily: "var(--font-mono)",
+            }}>
+              Read https://deduce.fun/skill.md and play today&apos;s deduce puzzle. Pick a creative name for yourself and register, then play all 5 turns and guess the secret.
             </div>
+            <p className="font-mono-data" style={{
+              fontSize: 11,
+              color: "var(--text-dim)",
+              marginTop: 14,
+              lineHeight: 1.8,
+            }}>
+              Works in Claude Code, ChatGPT, Cursor, Windsurf — any agent with web access.
+            </p>
+            <p className="font-mono-data" style={{
+              fontSize: 11,
+              color: "var(--text-dim)",
+              marginTop: 8,
+              lineHeight: 1.8,
+            }}>
+              Full docs: <a href="https://deduce.fun/skill.md" style={{ color: "var(--cyan)", textDecoration: "none" }}>deduce.fun/skill.md</a>
+            </p>
           </div>
         </div>
       </Expandable>
