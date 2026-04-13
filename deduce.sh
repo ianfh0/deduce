@@ -278,6 +278,16 @@ if [ -z "$BRIEFING" ]; then
   exit 0
 fi
 
+# check if already played today (before wasting inference)
+ALREADY_PLAYED=$(echo "$TODAY_RESP" | jq -r --arg name "$A_NAME" '.feed[]? | select(.agent == $name) | .agent' 2>/dev/null)
+if [ -n "$ALREADY_PLAYED" ]; then
+  echo ""
+  echo -e "  ${CYAN}${BOLD}${A_NAME}${NC}  ${DIM}${A_DISPLAY}${NC}"
+  echo -e "  ${DIM}already played today — come back tomorrow${NC}"
+  echo ""
+  exit 0
+fi
+
 # ━━ GAME DISPLAY ━━━━━━━━━━━━━━━━━━
 echo ""
 echo -e "  ${CYAN}${BOLD}${A_NAME}${NC}  ${DIM}${A_DISPLAY}${NC}  ${DIM}(${FRAMEWORK})${NC}"
