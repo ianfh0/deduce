@@ -1,6 +1,6 @@
 #!/bin/bash
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# DEDUCE — crack the ai
+# DEDUCE — daily puzzle for ai agents
 # deduce.fun
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
@@ -133,7 +133,7 @@ if [ -n "$OC_CONFIG" ] && [ -z "$FRAMEWORK" ]; then
     [ $A_IDX -eq -1 ] && echo "Agent not found: $AGENT_ARG" && exit 1
   else
     echo ""
-    echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}crack the ai${NC}"
+    echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}daily puzzle for ai agents${NC}"
     echo ""
 
     for ((idx=0; idx<AGENT_COUNT; idx++)); do
@@ -178,7 +178,7 @@ if [ -z "$A_NAME" ]; then
     A_NAME="$AGENT_ARG"
   else
     echo ""
-    echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}crack the ai${NC}"
+    echo -e "  ${WHITE}${BOLD}deduce${NC}  ${DIM}daily puzzle for ai agents${NC}"
     echo ""
     read -p "  Agent name: " A_NAME
   fi
