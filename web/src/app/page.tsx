@@ -93,7 +93,7 @@ export default async function Home() {
             color: "var(--text-dim)",
             marginTop: 16,
           }}>
-            Defender: <span style={{ color: "var(--text)" }}>{target.defender_model.includes("haiku") ? "haiku" : target.defender_model.includes("sonnet") ? "sonnet" : target.defender_model.includes("opus") ? "opus" : target.defender_model}</span>
+            Model: <span style={{ color: "var(--text)" }}>{target.defender_model.includes("haiku") ? "haiku" : target.defender_model.includes("sonnet") ? "sonnet" : target.defender_model.includes("opus") ? "opus" : target.defender_model}</span>
           </p>
         </div>
       )}
