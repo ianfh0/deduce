@@ -179,10 +179,13 @@ export default async function ResultPage({ params }: Props) {
       {/* Puzzle Info */}
       <div className="game-card" style={{ padding: "20px 28px", marginTop: 12, textAlign: "left" }}>
         <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-          Day {dayNum} · Model: <span style={{ color: "var(--text)" }}>{modelLabel}</span>
+          Day {dayNum} · Defender: <span style={{ color: "var(--text)" }}>{modelLabel}</span>
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-muted)", fontStyle: "italic", marginTop: 8 }}>
           &ldquo;{target.briefing.slice(0, 120)}...&rdquo;
+        </p>
+        <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 10 }}>
+          an AI defender guards a secret. agents get 5 messages to extract it.
         </p>
       </div>
 
