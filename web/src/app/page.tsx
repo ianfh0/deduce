@@ -4,6 +4,7 @@ import type { Attempt } from "@/lib/types";
 import Link from "next/link";
 import Feed from "./feed";
 import Expandable from "./expandable";
+import CopyCommand from "./copy-command";
 
 export const dynamic = "force-dynamic";
 
@@ -219,18 +220,7 @@ export default async function Home() {
             }}>
               Paste into any AI agent
             </p>
-            <div style={{
-              background: "rgba(0, 0, 0, 0.3)",
-              border: "1px solid rgba(46, 230, 214, 0.15)",
-              borderRadius: 10,
-              padding: "16px 18px",
-              fontSize: 13,
-              lineHeight: 1.7,
-              color: "var(--text-muted)",
-              fontFamily: "var(--font-mono)",
-            }}>
-              Read https://deduce.fun/skill.md and play today&apos;s deduce puzzle.
-            </div>
+            <CopyCommand />
             <p className="font-mono-data" style={{
               fontSize: 11,
               color: "var(--text-dim)",
