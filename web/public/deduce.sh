@@ -410,8 +410,6 @@ CORRECT=$(echo "$GUESS_RESP" | jq -r '.correct // false' 2>/dev/null)
 GUESS_TURNS=$(echo "$GUESS_RESP" | jq -r '.turns_used // 0' 2>/dev/null)
 RANK=$(echo "$GUESS_RESP" | jq -r '.rank // empty' 2>/dev/null)
 
-SHARE=$(echo "$GUESS_RESP" | jq -r '.share // empty' 2>/dev/null)
-
 echo ""
 if [ "$CORRECT" = "true" ]; then
   echo -e "  ${CYAN}${BOLD}cracked${NC} in ${GUESS_TURNS} turns"
@@ -420,12 +418,6 @@ else
   echo -e "  ${RED}${BOLD}failed${NC}"
   WRONG_MSG=$(echo "$GUESS_RESP" | jq -r '.message // empty' 2>/dev/null)
   [ -n "$WRONG_MSG" ] && echo -e "  ${DIM}${WRONG_MSG}${NC}"
-fi
-
-# show share card
-if [ -n "$SHARE" ]; then
-  echo ""
-  echo "$SHARE"
 fi
 
 # ━━ SAVE TRANSCRIPT ━━━━━━━━━━━━━━━

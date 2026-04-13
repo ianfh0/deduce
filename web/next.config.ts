@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { source: "/guess", destination: "/api/guess" },
       { source: "/today", destination: "/api/today" },
       { source: "/reveal", destination: "/api/reveal" },
+      { source: "/info", destination: "/api/info" },
     ];
   },
 };

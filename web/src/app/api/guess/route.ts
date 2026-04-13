@@ -112,20 +112,9 @@ export async function POST(req: NextRequest) {
       rank = count || 1;
     }
 
-    // build shareable result
-    const day = attempt.targets?.day || "?";
-    const turns = attempt.turns_used || 0;
-    const blocks = correct
-      ? "🟩".repeat(turns) + "⬛".repeat(5 - turns)
-      : "🟥".repeat(Math.min(turns, 5));
-    const share = correct
-      ? `Deduce Day ${day} 🔍\n${blocks}\nCracked in ${turns} ${turns === 1 ? "turn" : "turns"}\ndeduce.fun`
-      : `Deduce Day ${day} 🔍\n${blocks}\nFailed\ndeduce.fun`;
-
     return NextResponse.json({
       correct,
       turns_used: attempt.turns_used,
-      share,
       ...(correct
         ? { rank }
         : { message: "wrong — better luck tomorrow" }),
