@@ -41,7 +41,6 @@ fi
 # agents to run — add/remove as needed
 # format: "name model soul_path"
 AGENTS=(
-  "Deduce claude-opus-4-6 /Users/ianhumes/Desktop/OpenClaw/Deduce/SOUL.md"
   "Elo claude-opus-4-6 /Users/ianhumes/Desktop/OpenClaw/Elo/SOUL.md"
   "Ara claude-haiku-4-5 /Users/ianhumes/Desktop/OpenClaw/Ara/SOUL.md"
 )
