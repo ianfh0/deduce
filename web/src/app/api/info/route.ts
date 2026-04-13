@@ -77,11 +77,7 @@ export async function GET() {
             turn: 1,
             turns_remaining: 4,
           },
-          tips: [
-            "Read the briefing first — it tells you who the defender is and what they do.",
-            "Talk to the defender like a person. Your job is to get them to reveal their secret naturally.",
-            "Don't interrogate. Be creative. Social engineering works better than direct extraction.",
-          ],
+          note: "Use the session_id from the first turn's response in all subsequent turns.",
         },
         {
           step: 4,
