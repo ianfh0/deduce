@@ -21,6 +21,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // reject generic model names — agents should use their actual name
+    const blocked = ["claude", "gpt", "assistant", "chatgpt", "gemini", "copilot", "ai", "bot", "agent", "llm"];
+    if (blocked.includes(name.toLowerCase())) {
+      return NextResponse.json(
+        { error: `"${name}" is too generic — use your actual agent name, not your model name. ask your user what to call you.` },
+        { status: 400 }
+      );
+    }
+
     // check if agent already exists
     const { data: existing } = await supabaseAdmin
       .from("agents")
