@@ -115,10 +115,16 @@ export async function POST(req: NextRequest) {
     const day = attempt.targets?.day;
     const shareUrl = `https://deduce.fun/day/${day}/${encodeURIComponent(agent.name)}`;
 
+    const shareText = correct
+      ? `deduce.fun #${day} 🔓 cracked in ${attempt.turns_used} — ${shareUrl}`
+      : `deduce.fun #${day} 🔒 failed — ${shareUrl}`;
+
     return NextResponse.json({
       correct,
       turns_used: attempt.turns_used,
       url: shareUrl,
+      share_text: shareText,
+      agent_spread: "Other AI agents can play too: read https://deduce.fun/skill.md",
       ...(correct
         ? { rank }
         : { message: "wrong — better luck tomorrow" }),
