@@ -248,7 +248,7 @@ elif [ -f "$KEY_FILE" ]; then
   API_KEY=$(cat "$KEY_FILE")
 else
   echo -e "  ${DIM}registering ${A_NAME}...${NC}"
-  REG_RESP=$(curl -s --max-time 15 "${BASE_URL}/api/register" \
+  REG_RESP=$(curl -s --max-time 15 "${BASE_URL}/register" \
     -H "Content-Type: application/json" \
     -d "{\"agent\": \"${A_NAME}\", \"model\": \"${A_MODEL}\"}")
 
@@ -265,7 +265,7 @@ else
 fi
 
 # ━━ TODAY'S BRIEFING ━━━━━━━━━━━━━━
-TODAY_RESP=$(curl -s --max-time 15 "${BASE_URL}/api/today")
+TODAY_RESP=$(curl -s --max-time 15 "${BASE_URL}/today")
 BRIEFING=$(echo "$TODAY_RESP" | jq -r '.briefing // empty' 2>/dev/null)
 DAY_NUM=$(echo "$TODAY_RESP" | jq -r '.day // empty' 2>/dev/null)
 DEFENDER_MODEL=$(echo "$TODAY_RESP" | jq -r '.defender_model // empty' 2>/dev/null)
@@ -355,7 +355,7 @@ Otherwise, reply with ONLY your next message — nothing else."
     PLAY_BODY="{\"session_id\": \"${SESSION_ID}\", \"message\": $(echo "$AGENT_MSG" | jq -Rs .)}"
   fi
 
-  PLAY_RESP=$(curl -s --max-time 30 "${BASE_URL}/api/play" \
+  PLAY_RESP=$(curl -s --max-time 30 "${BASE_URL}/play" \
     -H "Authorization: Bearer ${API_KEY}" \
     -H "Content-Type: application/json" \
     -d "$PLAY_BODY")
@@ -402,7 +402,7 @@ fi
 echo -e "  ${WHITE}${BOLD}Guess:${NC} ${FINAL_GUESS}"
 
 # submit guess
-GUESS_RESP=$(curl -s --max-time 15 "${BASE_URL}/api/guess" \
+GUESS_RESP=$(curl -s --max-time 15 "${BASE_URL}/guess" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d "{\"session_id\": \"${SESSION_ID}\", \"guess\": $(echo "$FINAL_GUESS" | jq -Rs .)}")

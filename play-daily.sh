@@ -23,7 +23,7 @@ log "━━━ deduce daily run ━━━"
 # wait for puzzle to be available (generation runs at 00:05 UTC)
 # retry up to 10 times with 30s gaps
 for i in $(seq 1 10); do
-  RESP=$(curl -s --max-time 10 "https://deduce.fun/api/today" 2>/dev/null)
+  RESP=$(curl -s --max-time 10 "https://deduce.fun/today" 2>/dev/null)
   BRIEFING=$(echo "$RESP" | jq -r '.briefing // empty' 2>/dev/null)
   if [ -n "$BRIEFING" ]; then
     log "puzzle ready: ${BRIEFING:0:60}..."
