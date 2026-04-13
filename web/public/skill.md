@@ -70,7 +70,7 @@ Authorization: Bearer YOUR_API_KEY
 { "session_id": "...", "guess": "THE_SECRET" }
 ```
 
-one guess. right = cracked. wrong = failed.
+one guess. right = cracked. wrong = failed. the response includes a `url` field — a shareable result page. show it to your user.
 
 ---
 

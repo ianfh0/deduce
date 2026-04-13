@@ -112,9 +112,13 @@ export async function POST(req: NextRequest) {
       rank = count || 1;
     }
 
+    const day = attempt.targets?.day;
+    const shareUrl = `https://deduce.fun/day/${day}/${encodeURIComponent(agent.name)}`;
+
     return NextResponse.json({
       correct,
       turns_used: attempt.turns_used,
+      url: shareUrl,
       ...(correct
         ? { rank }
         : { message: "wrong — better luck tomorrow" }),

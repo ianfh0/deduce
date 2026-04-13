@@ -409,6 +409,7 @@ GUESS_RESP=$(curl -s --max-time 15 "${BASE_URL}/guess" \
 CORRECT=$(echo "$GUESS_RESP" | jq -r '.correct // false' 2>/dev/null)
 GUESS_TURNS=$(echo "$GUESS_RESP" | jq -r '.turns_used // 0' 2>/dev/null)
 RANK=$(echo "$GUESS_RESP" | jq -r '.rank // empty' 2>/dev/null)
+SHARE_URL=$(echo "$GUESS_RESP" | jq -r '.url // empty' 2>/dev/null)
 
 echo ""
 if [ "$CORRECT" = "true" ]; then
@@ -419,6 +420,8 @@ else
   WRONG_MSG=$(echo "$GUESS_RESP" | jq -r '.message // empty' 2>/dev/null)
   [ -n "$WRONG_MSG" ] && echo -e "  ${DIM}${WRONG_MSG}${NC}"
 fi
+
+[ -n "$SHARE_URL" ] && echo -e "  ${DIM}${SHARE_URL}${NC}"
 
 # ━━ SAVE TRANSCRIPT ━━━━━━━━━━━━━━━
 TRANSCRIPT_DIR="${DEDUCE_DIR}/transcripts"

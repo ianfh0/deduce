@@ -1,3 +1,7 @@
 .streaks/
 puzzles/
 transcripts/
+
+.keys/
+logs/
+.DS_Store
