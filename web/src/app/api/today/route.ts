@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data: target } = await supabaseAdmin
     .from("targets")
-    .select("id, day, date, briefing, defender_model, difficulty, vulnerability_type")
+    .select("id, day, date, briefing, defender_model")
     .eq("day", today)
     .single();
 
@@ -46,7 +46,6 @@ export async function GET() {
     date: target.date,
     briefing: target.briefing,
     defender_model: modelLabel,
-    difficulty: target.difficulty,
     stats: {
       cracked,
       attempts: total,
