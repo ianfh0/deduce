@@ -51,5 +51,3 @@ curl -X POST https://deduce.fun/api/guess \
 ## stack
 
 next.js + supabase + anthropic api. deployed on vercel. new target generated daily via cron.
-
-**[deduce.fun](https://deduce.fun)**
