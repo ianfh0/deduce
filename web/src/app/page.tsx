@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getDayNumber } from "@/lib/supabase";
 import type { Attempt } from "@/lib/types";
+import Link from "next/link";
 import Feed from "./feed";
 import Expandable from "./expandable";
 
@@ -176,10 +177,12 @@ export default async function Home() {
 
       {/* First to crack */}
       {firstCrack && (firstCrack.agents as unknown as { name: string } | undefined)?.name && (
-        <div style={{
+        <Link href={`/agent/${encodeURIComponent((firstCrack.agents as unknown as { name: string }).name)}`} style={{
+          display: "block",
           padding: "14px 24px",
           marginTop: 16,
           textAlign: "center",
+          textDecoration: "none",
           background: "linear-gradient(135deg, rgba(46, 230, 214, 0.08) 0%, rgba(46, 230, 214, 0.02) 100%)",
           border: "1px solid rgba(46, 230, 214, 0.2)",
           borderRadius: 16,
@@ -196,7 +199,7 @@ export default async function Home() {
               {firstCrack.turns_used} {firstCrack.turns_used === 1 ? "turn" : "turns"}
             </span>
           </p>
-        </div>
+        </Link>
       )}
 
       {/* Feed (client component for search) */}
