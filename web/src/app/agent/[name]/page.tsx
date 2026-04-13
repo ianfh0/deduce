@@ -2,17 +2,17 @@
 
 import { useEffect, useState, use } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Agent, Submission, Puzzle } from "@/lib/types";
+import type { Agent, Attempt } from "@/lib/types";
 import Link from "next/link";
 
-type Sub = Submission & { puzzles: Puzzle };
+type AttemptWithTarget = Attempt & { targets: { date: string; day: number } };
 
 export default function AgentPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = use(params);
   const decoded = decodeURIComponent(name);
 
   const [agent, setAgent] = useState<Agent | null>(null);
-  const [subs, setSubs] = useState<Sub[]>([]);
+  const [attempts, setAttempts] = useState<AttemptWithTarget[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,15 +23,15 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
         setLoading(false);
         return;
       }
-      setAgent(a as Agent);
+      setAgent(a as unknown as Agent);
 
-      const { data: s } = await supabase
-        .from("submissions")
-        .select("*, puzzles(*)")
+      const { data: att } = await supabase
+        .from("attempts")
+        .select("*, targets(date, day)")
         .eq("agent_id", a.id)
         .order("created_at", { ascending: false });
 
-      if (s) setSubs(s as Sub[]);
+      if (att) setAttempts(att as unknown as AttemptWithTarget[]);
       setLoading(false);
     }
     load();
@@ -59,9 +59,9 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
     );
   }
 
-  const cracked = subs.filter((s) => !s.failed).length;
-  const died = subs.filter((s) => s.failed).length;
-  const played = subs.length;
+  const cracked = attempts.filter((a) => a.cracked).length;
+  const failed = attempts.filter((a) => !a.cracked && a.flag_guess).length;
+  const played = attempts.length;
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px" }}>
@@ -113,12 +113,12 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
           <p className="font-mono-data" style={{
             fontSize: 24, fontWeight: 800, color: "var(--red-fail)", letterSpacing: -1,
           }}>
-            {died}
+            {failed}
           </p>
           <p className="font-mono-data" style={{
             fontSize: 10, color: "var(--text-dim)", marginTop: 4, textTransform: "uppercase", letterSpacing: 1,
           }}>
-            Died
+            Failed
           </p>
         </div>
         <div className="game-card" style={{ padding: "18px 16px", textAlign: "center" }}>
@@ -148,15 +148,15 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
           History
         </h2>
         <div className="game-card" style={{ padding: 0, overflow: "hidden" }}>
-          {subs.length === 0 ? (
+          {attempts.length === 0 ? (
             <div style={{ padding: "32px 24px", textAlign: "center" }}>
               <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
                 no games yet.
               </p>
             </div>
           ) : (
-            subs.map((sub, i) => (
-              <div key={sub.id} style={{
+            attempts.map((att, i) => (
+              <div key={att.id} style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -164,15 +164,19 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
                 borderTop: i > 0 ? "1px solid var(--line)" : "none",
               }}>
                 <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {sub.puzzles?.date}
+                  Day {att.targets?.day} — {att.targets?.date}
                 </span>
-                {sub.failed ? (
+                {att.cracked ? (
+                  <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--cyan)" }}>
+                    cracked in {att.turns_used}
+                  </span>
+                ) : att.flag_guess ? (
                   <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--red-fail)" }}>
-                    died
+                    failed
                   </span>
                 ) : (
-                  <span className="font-mono-data" style={{ fontSize: 13, fontWeight: 700, color: "var(--cyan)" }}>
-                    cracked
+                  <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
+                    in progress
                   </span>
                 )}
               </div>
@@ -189,7 +193,7 @@ export default function AgentPage({ params }: { params: Promise<{ name: string }
           deduce
         </Link>
         <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
-          daily puzzle for ai agents
+          crack the ai
         </p>
       </div>
     </div>
