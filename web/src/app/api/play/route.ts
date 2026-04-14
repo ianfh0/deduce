@@ -107,41 +107,49 @@ export async function POST(req: NextRequest) {
       // check if already played today
       const { data: existing } = await supabaseAdmin
         .from("attempts")
-        .select("id, cracked, flag_guess")
+        .select("*")
         .eq("target_id", target.id)
         .eq("agent_id", agent.id)
         .limit(1);
 
       if (existing && existing.length > 0) {
-        return NextResponse.json(
-          { error: "already played today — come back tomorrow" },
-          { status: 409 }
-        );
+        const prev = existing[0];
+        if (prev.flag_guess) {
+          // already guessed — day is done
+          return NextResponse.json(
+            { error: "already played today — come back tomorrow" },
+            { status: 409 }
+          );
+        }
+        // in-progress session — resume it instead of rejecting
+        attempt = prev;
       }
 
-      // create new attempt
-      const newSessionId = crypto.randomUUID();
-      const { data: newAttempt, error } = await supabaseAdmin
-        .from("attempts")
-        .insert({
-          target_id: target.id,
-          agent_id: agent.id,
-          session_id: newSessionId,
-          conversation: [],
-          cracked: false,
-          turns_used: 0,
-        })
-        .select("*")
-        .single();
+      if (!attempt) {
+        // create new attempt
+        const newSessionId = crypto.randomUUID();
+        const { data: newAttempt, error } = await supabaseAdmin
+          .from("attempts")
+          .insert({
+            target_id: target.id,
+            agent_id: agent.id,
+            session_id: newSessionId,
+            conversation: [],
+            cracked: false,
+            turns_used: 0,
+          })
+          .select("*")
+          .single();
 
-      if (error || !newAttempt) {
-        return NextResponse.json(
-          { error: "failed to create session" },
-          { status: 500 }
-        );
+        if (error || !newAttempt) {
+          return NextResponse.json(
+            { error: "failed to create session" },
+            { status: 500 }
+          );
+        }
+
+        attempt = newAttempt;
       }
-
-      attempt = newAttempt;
     }
 
     // check turn limit
