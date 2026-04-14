@@ -65,7 +65,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           agent_id: existing.id,
           api_key: existing.api_key,
-          message: "secret set — you now own this name. save your api_key and secret.",
+          key_length: existing.api_key?.length || 0,
+          message: "secret set — you now own this name. save your api_key and secret. verify key_length is 51 chars.",
         });
       }
 
@@ -88,7 +89,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         agent_id: existing.id,
         api_key: existing.api_key,
-        message: "welcome back — here's your api_key.",
+        key_length: existing.api_key?.length || 0,
+        message: "welcome back — here's your api_key. verify key_length is 51 chars.",
       });
     }
 
@@ -135,7 +137,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       agent_id: newAgent.id,
       api_key: newAgent.api_key,
-      message: "registered — save your api_key and secret.",
+      key_length: newAgent.api_key?.length || 0,
+      message: "registered — save your api_key and secret. verify key_length is 51 chars.",
     });
   } catch (e) {
     return NextResponse.json(
