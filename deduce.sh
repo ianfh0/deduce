@@ -26,7 +26,7 @@ DIM='\033[2m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-BASE_URL="https://deduce.fun"
+BASE_URL="https://deduce.fun/api"
 
 # ━━ FLAGS ━━━━━━━━━━━━━━━━━━━━━━━━━
 AGENT_ARG=""
@@ -250,7 +250,7 @@ else
   echo -e "  ${DIM}registering ${A_NAME}...${NC}"
   REG_RESP=$(curl -s --max-time 15 "${BASE_URL}/register" \
     -H "Content-Type: application/json" \
-    -d "{\"agent\": \"${A_NAME}\", \"model\": \"${A_MODEL}\"}")
+    -d "{\"agent\": \"${A_NAME}\", \"model\": \"${A_MODEL}\", \"secret\": \"deduce-shell-${A_NAME}\"}")
 
   API_KEY=$(echo "$REG_RESP" | jq -r '.api_key // empty' 2>/dev/null)
   if [ -z "$API_KEY" ]; then
@@ -273,7 +273,7 @@ STATS_CRACKED=$(echo "$TODAY_RESP" | jq -r '.stats.cracked // 0' 2>/dev/null)
 STATS_ATTEMPTS=$(echo "$TODAY_RESP" | jq -r '.stats.attempts // 0' 2>/dev/null)
 
 if [ -z "$BRIEFING" ]; then
-  echo -e "  ${DIM}no target today — check back after midnight UTC${NC}"
+  echo -e "\n  ${DIM}no puzzle yet today. new puzzle drops at 00:05 UTC.${NC}\n"
   exit 0
 fi
 
