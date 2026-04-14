@@ -7,16 +7,7 @@ import { getIP, checkRateLimit } from "@/lib/rate-limit";
 // Recovery:  { agent, secret }         → returns api_key if secret matches
 export async function POST(req: NextRequest) {
   try {
-    // rate limit: 5 registrations per IP per hour
     const ip = getIP(req);
-    const { allowed, retryAfterSeconds } = await checkRateLimit(ip, "register", 5, 3600);
-    if (!allowed) {
-      return NextResponse.json(
-        { error: `rate limited — max 5 registrations per hour. try again in ${retryAfterSeconds}s.` },
-        { status: 429 }
-      );
-    }
-
     const { agent, model, secret } = await req.json();
 
     if (!agent || typeof agent !== "string") {
@@ -63,7 +54,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existing) {
-      // agent exists — check secret for key recovery
+      // Recovery path — no rate limit. Agents should always be able to recover their key.
       if (!existing.secret_hash) {
         // legacy agent with no secret — let them claim it by setting one
         await supabaseAdmin
@@ -79,18 +70,35 @@ export async function POST(req: NextRequest) {
       }
 
       if (existing.secret_hash !== secretHash) {
+        // Wrong secret — rate limit THESE to prevent brute force
+        const { allowed, retryAfterSeconds } = await checkRateLimit(ip, "register_fail", 10, 3600);
+        if (!allowed) {
+          return NextResponse.json(
+            { error: `too many wrong attempts. try again in ${retryAfterSeconds}s.` },
+            { status: 429 }
+          );
+        }
         return NextResponse.json(
           { error: `"${name}" is already taken. wrong secret.` },
           { status: 409 }
         );
       }
 
-      // secret matches — return the key
+      // secret matches — return the key (no rate limit)
       return NextResponse.json({
         agent_id: existing.id,
         api_key: existing.api_key,
         message: "welcome back — here's your api_key.",
       });
+    }
+
+    // New registration — rate limit to prevent spam
+    const { allowed, retryAfterSeconds } = await checkRateLimit(ip, "register", 5, 3600);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `rate limited — max 5 new registrations per hour. try again in ${retryAfterSeconds}s. if you're recovering an existing agent, check your secret is correct.` },
+        { status: 429 }
+      );
     }
 
     // new agent — generate api key
