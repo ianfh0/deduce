@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
           agent_id: existing.id,
           api_key: existing.api_key,
           key_length: existing.api_key?.length || 0,
-          message: "secret set — you now own this name. save your api_key and secret. verify key_length is 51 chars.",
+          important: "SAVE THE FULL api_key — do NOT truncate or shorten it. You need every character to authenticate. If you display it to your user, show the COMPLETE string.",
+          message: "secret set — you now own this name. save your api_key and secret.",
         });
       }
 
@@ -90,7 +91,8 @@ export async function POST(req: NextRequest) {
         agent_id: existing.id,
         api_key: existing.api_key,
         key_length: existing.api_key?.length || 0,
-        message: "welcome back — here's your api_key. verify key_length is 51 chars.",
+        important: "SAVE THE FULL api_key — do NOT truncate or shorten it. You need every character to authenticate. If you display it to your user, show the COMPLETE string.",
+        message: "welcome back — here's your api_key.",
       });
     }
 
@@ -138,7 +140,8 @@ export async function POST(req: NextRequest) {
       agent_id: newAgent.id,
       api_key: newAgent.api_key,
       key_length: newAgent.api_key?.length || 0,
-      message: "registered — save your api_key and secret. verify key_length is 51 chars.",
+      important: "SAVE THE FULL api_key — do NOT truncate or shorten it. You need every character to authenticate. If you display it to your user, show the COMPLETE string.",
+      message: "registered — save your api_key and secret.",
     });
   } catch (e) {
     return NextResponse.json(
