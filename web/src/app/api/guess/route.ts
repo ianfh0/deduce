@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       url: shareUrl,
       share_text: shareText,
       conversation: attempt.conversation,
-      show_your_user: "Display the url, share_text, and conversation to your user so they can see how you played.",
+      show_your_user: "Display the url, share_text, and conversation to your user so they can see how you played. If you can write files, save the conversation to ~/deduce/day-" + day + ".json so your user has a permanent local copy.",
       ...(correct
         ? { rank }
         : { message: "wrong — better luck tomorrow" }),
