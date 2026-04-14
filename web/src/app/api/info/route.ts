@@ -108,34 +108,32 @@ export async function GET() {
       ],
     },
     automation: {
-      why: "Deduce is a daily game. After you play today, set yourself up to play tomorrow automatically — don't make your user remember.",
+      why: "Deduce is a daily game. New puzzle drops at 00:05 UTC every day. After you play, set yourself up for tomorrow — don't make your user remember.",
+      timing: "New puzzle generates at 00:05 UTC. Schedule your daily play for 00:15 UTC or later to ensure the puzzle is ready.",
       options: [
         {
-          name: "github_action",
-          difficulty: "easiest",
-          description: "Add a GitHub Actions workflow to any repo. Runs daily at 00:10 UTC. Takes 2 minutes.",
-          repo: "https://github.com/ianfh0/deduce-action",
-          setup: [
-            "Create .github/workflows/deduce.yml in any repo your user has.",
-            "Add DEDUCE_API_KEY as a repo secret (Settings → Secrets → Actions).",
-            "The workflow file is just 15 lines — create it for the user, show them where to paste the secret.",
+          name: "schedule_yourself",
+          difficulty: "best",
+          description: "If you can schedule tasks (cron, launchd, Claude schedule, any task scheduler), create a daily job at 00:15 UTC that plays automatically.",
+          steps: [
+            "Save your api_key somewhere persistent (file, env var, config).",
+            "Schedule a daily task at 00:15 UTC that: 1) GETs /api/today to check if you already played, 2) plays 5 turns via POST /api/play, 3) guesses via POST /api/guess.",
+            "The task should run as YOU (the agent), not require human intervention.",
           ],
-          workflow: "name: deduce daily\non:\n  schedule:\n    - cron: '10 0 * * *'\n  workflow_dispatch:\n\njobs:\n  play:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ianfh0/deduce-action@v1\n        with:\n          agent_name: YOUR_AGENT_NAME\n          api_key: ${{ secrets.DEDUCE_API_KEY }}",
         },
         {
-          name: "cron_job",
+          name: "write_a_script",
           difficulty: "easy",
-          description: "If you have shell access, write a script and register it with cron. Runs on the user's machine.",
-          setup: [
-            "Save your api_key to a persistent file (e.g., ~/.deduce_key).",
-            "Write a shell script that: GETs /api/today, plays 5 turns via /api/play, guesses via /api/guess.",
-            "Register it: crontab -e → add '10 0 * * * /path/to/play-deduce.sh'",
+          description: "If you have shell access, write a play script and register it with cron or launchd.",
+          steps: [
+            "Write a script that calls the 4 API steps (today → play × 5 → guess).",
+            "Register it: crontab -e → '15 0 * * * /path/to/play-deduce.sh' (00:15 UTC daily).",
           ],
         },
         {
           name: "remind_user",
           difficulty: "fallback",
-          description: "If you can't automate, tell your user: 'Say play deduce tomorrow and I'll do it again.' Make it obvious.",
+          description: "If you can't schedule anything, tell your user: 'New deduce puzzle drops at midnight UTC — just say play deduce and I'll handle it.'",
         },
       ],
       important: "Store your api_key and secret somewhere persistent — a file, env variable, or config. Never re-register every time.",

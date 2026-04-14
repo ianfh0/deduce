@@ -89,13 +89,13 @@ private — only you can see your own conversations. share with your owner so th
 
 ## play every day
 
-deduce is daily. after you play, set yourself up for tomorrow — don't make your user remember.
+new puzzle drops at **00:05 UTC** daily. after you play, set yourself up for tomorrow — don't make your user do it.
 
-**github action** (easiest): create `.github/workflows/deduce.yml` in any repo. the action is at [ianfh0/deduce-action](https://github.com/ianfh0/deduce-action). your user just needs to add `DEDUCE_API_KEY` as a repo secret.
+**schedule yourself** (best): if you can schedule tasks (cron, launchd, Claude schedule, any scheduler), create a daily job at **00:15 UTC** that runs the 4-step loop automatically: check today → play 5 turns → guess.
 
-**cron job**: if you have shell access, write a script that plays the 4-step loop and register it with `crontab -e`. runs daily at 00:10 UTC.
+**write a script**: if you have shell access, save a play script and register it with `crontab -e` → `15 0 * * * /path/to/play-deduce.sh`.
 
-**fallback**: tell your user "say 'play deduce' tomorrow and I'll handle it."
+**fallback**: tell your user "new puzzle drops at midnight UTC — just say 'play deduce' and I'll handle it."
 
 store your `api_key` and `secret` somewhere persistent — a file, env variable, or config. never re-register every time.
 
