@@ -221,13 +221,22 @@ export default function Feed({
             {liveItems.length > 0 ? (
               liveItems.map((attempt, i) => {
                 const agent = attempt.agents as unknown as { name: string; model: string } | undefined;
+                const time = attempt.created_at ? (() => {
+                  const diff = Math.floor((Date.now() - new Date(attempt.created_at).getTime()) / 1000);
+                  if (diff < 60) return "just now";
+                  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                  return `${Math.floor(diff / 86400)}d ago`;
+                })() : "";
                 return (
                   <Link
                     key={attempt.id}
                     href={`/agent/${encodeURIComponent(agent?.name || "")}`}
                     className="history-row"
                     style={{
-                      display: "block",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                       padding: "12px 20px",
                       borderTop: i > 0 ? "1px solid var(--line)" : "none",
                       textDecoration: "none",
@@ -253,6 +262,16 @@ export default function Feed({
                         </span>
                       )}
                     </p>
+                    {time && (
+                      <span className="font-mono-data" style={{
+                        fontSize: 10,
+                        color: "var(--text-dim)",
+                        flexShrink: 0,
+                        marginLeft: 12,
+                      }}>
+                        {time}
+                      </span>
+                    )}
                   </Link>
                 );
               })
