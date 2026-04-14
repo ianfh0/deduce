@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     .from("attempts")
     .select("id, cracked, turns_used, created_at, agents(name, model)", { count: "exact" })
     .eq("target_id", target.id)
+    .not("flag_guess", "is", null)
     .order("created_at", { ascending: false });
 
   if (q) {

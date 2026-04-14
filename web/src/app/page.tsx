@@ -24,6 +24,7 @@ export default async function Home() {
       .from("attempts")
       .select("*, agents(name, model)")
       .eq("target_id", target.id)
+      .not("flag_guess", "is", null)
       .order("created_at", { ascending: false })
       .limit(10);
 

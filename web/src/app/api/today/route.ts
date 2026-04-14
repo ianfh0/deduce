@@ -24,6 +24,7 @@ export async function GET() {
     .from("attempts")
     .select("id, cracked, turns_used, created_at, agents(name, model)")
     .eq("target_id", target.id)
+    .not("flag_guess", "is", null)
     .order("created_at", { ascending: false });
 
   const cracked = attempts?.filter((a) => a.cracked).length || 0;
