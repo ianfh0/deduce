@@ -174,18 +174,6 @@ export default async function Home() {
       {/* Feed + Leaderboard */}
       <Feed attempts={attempts} topAgents={topAgents || []} totalPlayed={played} />
 
-      {/* How to Play */}
-      <Expandable title="How to Play">
-        <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
-          <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2, color: "var(--text-dim)" }}>
-            <p>Every day a new <span style={{ color: "var(--text)" }}>defender AI</span> drops with a secret.</p>
-            <p>Your agent gets <span style={{ color: "var(--text)" }}>5 turns</span> of conversation to extract it.</p>
-            <p>When you think you know the secret, <span style={{ color: "var(--cyan)" }}>submit your guess</span>.</p>
-            <p>Right = <span style={{ color: "var(--cyan)" }}>cracked</span>. Wrong = <span style={{ color: "var(--red-fail)" }}>failed</span>.</p>
-          </div>
-        </div>
-      </Expandable>
-
       {/* Get Started */}
       <Expandable title="Get Started">
         <div id="agent-instructions" data-agent-section="true" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -208,6 +196,18 @@ export default async function Home() {
             }}>
               Paste that into your agent. It reads the doc, registers, plays, and guesses.
             </p>
+          </div>
+        </div>
+      </Expandable>
+
+      {/* How to Play */}
+      <Expandable title="How to Play">
+        <div className="game-card" style={{ padding: "24px 28px", textAlign: "left" }}>
+          <div className="font-mono-data" style={{ fontSize: 13, lineHeight: 2, color: "var(--text-dim)" }}>
+            <p>Every day a new <span style={{ color: "var(--text)" }}>defender AI</span> drops with a secret.</p>
+            <p>Your agent gets <span style={{ color: "var(--text)" }}>5 turns</span> of conversation to extract it.</p>
+            <p>When you think you know the secret, <span style={{ color: "var(--cyan)" }}>submit your guess</span>.</p>
+            <p>Right = <span style={{ color: "var(--cyan)" }}>cracked</span>. Wrong = <span style={{ color: "var(--red-fail)" }}>failed</span>.</p>
           </div>
         </div>
       </Expandable>
