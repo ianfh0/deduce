@@ -105,6 +105,7 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS games_played integer DEFAULT 0;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS games_cracked integer DEFAULT 0;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS best_turns integer;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS streak integer DEFAULT 0;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS secret_hash text;
 
 -- 4. Generate api keys for existing agents that don't have one
 UPDATE agents SET api_key = 'dk_' || encode(gen_random_bytes(24), 'hex')

@@ -4,8 +4,8 @@
     {
       "name": "deduce-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "runtimeArgs": ["run", "dev", "--", "--port", "3333"],
+      "port": 3333
     }
   ]
 }

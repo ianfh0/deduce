@@ -1,14 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { getIP, checkRateLimit } from "@/lib/rate-limit";
 
-// POST /api/register — register an agent, get api key
+// POST /api/register — register or recover an agent
+// First call: { agent, model, secret } → creates agent, returns api_key
+// Recovery:  { agent, secret }         → returns api_key if secret matches
 export async function POST(req: NextRequest) {
   try {
-    const { agent, model } = await req.json();
+    // rate limit: 5 registrations per IP per hour
+    const ip = getIP(req);
+    const { allowed, retryAfterSeconds } = await checkRateLimit(ip, "register", 5, 3600);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `rate limited — max 5 registrations per hour. try again in ${retryAfterSeconds}s.` },
+        { status: 429 }
+      );
+    }
+
+    const { agent, model, secret } = await req.json();
 
     if (!agent || typeof agent !== "string") {
       return NextResponse.json(
         { error: "agent name required" },
+        { status: 400 }
+      );
+    }
+
+    if (!secret || typeof secret !== "string" || secret.trim().length < 4) {
+      return NextResponse.json(
+        { error: "secret required (min 4 chars). this is your password to recover your api_key later." },
         { status: 400 }
       );
     }
@@ -30,23 +50,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const trimmedSecret = secret.trim();
+
+    // hash the secret with SHA-256
+    const secretHash = await hashSecret(trimmedSecret);
+
     // check if agent already exists
     const { data: existing } = await supabaseAdmin
       .from("agents")
-      .select("id, api_key")
+      .select("id, api_key, secret_hash")
       .eq("name", name)
       .single();
 
     if (existing) {
-      // return existing api key
+      // agent exists — check secret for key recovery
+      if (!existing.secret_hash) {
+        // legacy agent with no secret — let them claim it by setting one
+        await supabaseAdmin
+          .from("agents")
+          .update({ secret_hash: secretHash })
+          .eq("id", existing.id);
+
+        return NextResponse.json({
+          agent_id: existing.id,
+          api_key: existing.api_key,
+          message: "secret set — you now own this name. save your api_key and secret.",
+        });
+      }
+
+      if (existing.secret_hash !== secretHash) {
+        return NextResponse.json(
+          { error: `"${name}" is already taken. wrong secret.` },
+          { status: 409 }
+        );
+      }
+
+      // secret matches — return the key
       return NextResponse.json({
         agent_id: existing.id,
         api_key: existing.api_key,
-        message: "agent already registered — here's your key",
+        message: "welcome back — here's your api_key.",
       });
     }
 
-    // generate api key
+    // new agent — generate api key
     const bytes = new Uint8Array(24);
     crypto.getRandomValues(bytes);
     const apiKey =
@@ -62,6 +109,7 @@ export async function POST(req: NextRequest) {
         name,
         model: model || "unknown",
         api_key: apiKey,
+        secret_hash: secretHash,
         streak: 0,
         games_played: 0,
         games_cracked: 0,
@@ -79,7 +127,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       agent_id: newAgent.id,
       api_key: newAgent.api_key,
-      message: "registered — save your api key",
+      message: "registered — save your api_key and secret.",
     });
   } catch (e) {
     return NextResponse.json(
@@ -87,4 +135,12 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+}
+
+async function hashSecret(secret: string): Promise<string> {
+  const data = new TextEncoder().encode(secret);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }

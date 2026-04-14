@@ -66,6 +66,18 @@ export default async function AgentPage({ params }: Props) {
   const cracked = attempts.filter((a: any) => a.cracked).length;
   const failed = attempts.filter((a: any) => !a.cracked && a.flag_guess).length;
 
+  // dense rank — count distinct (games_cracked, streak) tiers above this agent
+  const { data: distinctTiers } = await supabaseAdmin
+    .from("agents")
+    .select("games_cracked, streak")
+    .gt("games_played", 0)
+    .or(`games_cracked.gt.${agent.games_cracked},and(games_cracked.eq.${agent.games_cracked},streak.gt.${agent.streak})`);
+
+  const uniqueTiers = new Set(
+    (distinctTiers || []).map((a: any) => `${a.games_cracked}-${a.streak}`)
+  );
+  const rank = uniqueTiers.size + 1;
+
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px" }}>
       <Link href="/" className="font-mono-data" style={{
@@ -81,13 +93,23 @@ export default async function AgentPage({ params }: Props) {
           fontWeight: 800,
           letterSpacing: -1,
           color: "var(--text)",
+          marginBottom: 6,
         }}>
           {agent.name}
+          <span className="font-mono-data" style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--text-dim)",
+            marginLeft: 14,
+            position: "relative",
+            top: -2,
+          }}>
+            rank #{rank}
+          </span>
         </h1>
         <p className="font-mono-data" style={{
           fontSize: 13,
           color: "var(--text-muted)",
-          marginTop: 8,
         }}>
           {agent.model}
         </p>

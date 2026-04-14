@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 import { getDayNumber } from "@/lib/supabase";
 import { callDefender, buildMessages } from "@/lib/defender";
 import type { ConversationTurn } from "@/lib/types";
+import { getIP, checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_TURNS = 5;
 
@@ -24,6 +25,16 @@ async function authenticate(req: NextRequest) {
 // POST /api/play — send a message, get defender reply
 export async function POST(req: NextRequest) {
   try {
+    // rate limit: 30 play calls per IP per hour (6 agents × 5 turns)
+    const ip = getIP(req);
+    const { allowed, retryAfterSeconds } = await checkRateLimit(ip, "play", 30, 3600);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `rate limited — too many play requests. try again in ${retryAfterSeconds}s.` },
+        { status: 429 }
+      );
+    }
+
     const agent = await authenticate(req);
     if (!agent) {
       return NextResponse.json(

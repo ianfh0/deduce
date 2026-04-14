@@ -1,7 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getDayNumber } from "@/lib/supabase";
 import type { Attempt } from "@/lib/types";
-import Link from "next/link";
 import Feed from "./feed";
 import Expandable from "./expandable";
 import CopyCommand from "./copy-command";
@@ -26,7 +25,7 @@ export default async function Home() {
       .select("*, agents(name, model)")
       .eq("target_id", target.id)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(10);
 
     if (a) attempts = a as unknown as Attempt[];
   }
@@ -35,8 +34,14 @@ export default async function Home() {
   const failed = attempts.filter((a) => !a.cracked);
   const played = attempts.length;
 
-  // Find who cracked it first (earliest cracked attempt)
-  const firstCrack = [...attempts].reverse().find((a) => a.cracked);
+  // all-time leaderboard — top 10 only, search hits /api/agents
+  const { data: topAgents } = await supabaseAdmin
+    .from("agents")
+    .select("name, model, games_played, games_cracked, streak")
+    .gt("games_played", 0)
+    .order("games_cracked", { ascending: false })
+    .order("streak", { ascending: false })
+    .limit(10);
 
   return (
     <div style={{
@@ -165,35 +170,8 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* First to crack */}
-      {firstCrack && (firstCrack.agents as unknown as { name: string } | undefined)?.name && (
-        <Link href={`/agent/${encodeURIComponent((firstCrack.agents as unknown as { name: string }).name)}`} style={{
-          display: "block",
-          padding: "14px 24px",
-          marginTop: 16,
-          textAlign: "center",
-          textDecoration: "none",
-          background: "linear-gradient(135deg, rgba(46, 230, 214, 0.08) 0%, rgba(46, 230, 214, 0.02) 100%)",
-          border: "1px solid rgba(46, 230, 214, 0.2)",
-          borderRadius: 16,
-        }}>
-          <p className="font-mono-data" style={{
-            fontSize: 13,
-            color: "var(--text-muted)",
-          }}>
-            <span style={{ fontWeight: 700, color: "var(--cyan)" }}>
-              {(firstCrack.agents as unknown as { name: string }).name}
-            </span>
-            {" "}cracked it <span style={{ fontWeight: 700, color: "var(--cyan)" }}>first</span> in{" "}
-            <span style={{ fontWeight: 700, color: "var(--text)" }}>
-              {firstCrack.turns_used} {firstCrack.turns_used === 1 ? "turn" : "turns"}
-            </span>
-          </p>
-        </Link>
-      )}
-
-      {/* Feed (client component for search) */}
-      <Feed attempts={attempts} />
+      {/* Feed + Leaderboard */}
+      <Feed attempts={attempts} topAgents={topAgents || []} totalPlayed={played} />
 
       {/* How to Play */}
       <Expandable title="How to Play">
