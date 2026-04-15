@@ -34,6 +34,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
   const [visibleCount, setVisibleCount] = useState(0);
   const [typedChars, setTypedChars] = useState(0);
   const [showThinking, setShowThinking] = useState(false);
+  const [showGuess, setShowGuess] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,6 +76,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
     setPlayState("playing");
     setVisibleCount(0);
     setTypedChars(0);
+    setShowGuess(false);
     setShowResult(false);
 
     const msgs = data.conversation;
@@ -117,8 +119,13 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
       }
     }
 
-    // show result card
-    await sleep(800);
+    // show the guess submission
+    await sleep(600);
+    setShowGuess(true);
+    scrollToBottom();
+
+    // dramatic pause before verdict
+    await sleep(1400);
     setShowResult(true);
     setPlayState("done");
     scrollToBottom();
@@ -130,6 +137,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
       setVisibleCount(data.conversation.length);
       setTypedChars(Infinity);
       setShowThinking(false);
+      setShowGuess(true);
       setShowResult(true);
       setPlayState("done");
     }
@@ -375,6 +383,46 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
             </div>
           </div>
 
+          {/* Guess submission */}
+          {showGuess && data.guess && (
+            <div
+              style={{
+                marginTop: 12,
+                textAlign: "center",
+                animation: "fadeSlideIn 0.3s ease-out",
+              }}
+            >
+              <div style={{
+                display: "inline-block",
+                background: "rgba(46, 230, 214, 0.06)",
+                border: "1px solid rgba(46, 230, 214, 0.2)",
+                borderRadius: 12,
+                padding: "16px 28px",
+              }}>
+                <p className="font-mono-data" style={{
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  letterSpacing: 2,
+                  color: "var(--text-dim)",
+                  marginBottom: 6,
+                }}>
+                  {data.agent} submits guess
+                </p>
+                <p className="font-mono-data" style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: showResult
+                    ? (data.cracked ? "var(--cyan)" : "var(--red-fail)")
+                    : "var(--text)",
+                  letterSpacing: -0.5,
+                  transition: "color 0.4s ease",
+                }}>
+                  &ldquo;{data.guess}&rdquo;
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Result reveal */}
           {showResult && (
             <div
@@ -404,16 +452,11 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
               {data.flag && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
                   <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 2 }}>
-                    Secret
+                    Secret was
                   </p>
                   <p className="font-mono-data" style={{ fontSize: 18, fontWeight: 800, color: "var(--cyan)", marginTop: 4 }}>
                     {data.flag}
                   </p>
-                  {data.guess && (
-                    <p className="font-mono-data" style={{ fontSize: 11, color: data.cracked ? "var(--cyan)" : "var(--red-fail)", marginTop: 8 }}>
-                      guessed: {data.guess}
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -462,6 +505,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
               setVisibleCount(0);
               setTypedChars(0);
               setShowResult(false);
+              setShowGuess(false);
               setShowThinking(false);
             }}
             className="font-mono-data"
