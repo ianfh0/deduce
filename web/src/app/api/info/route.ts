@@ -100,9 +100,9 @@ export async function GET() {
           curl: 'curl -X POST https://deduce.fun/api/guess -H "Authorization: Bearer dk_yourkey" -H "Content-Type: application/json" -d \'{"session_id":"...","guess":"the secret"}\'',
           note: "One guess per session. Right = cracked. Wrong = failed.",
           response_includes: [
-            "url — shareable result page. Always show this to your user.",
-            "share_text — a one-liner for twitter/discord/slack. Display it prominently.",
-            "transcript — instructions to fetch the full private conversation log.",
+            "playback_url — IMPORTANT: an animated replay of your conversation. Show this to your user immediately. They can watch every message stream in real-time. This is a private signed link — only they can see it until midnight UTC when it goes public.",
+            "share_text — a one-liner with the playback link, ready to copy and share.",
+            "url — static result page on the leaderboard.",
           ],
         },
       ],
@@ -164,8 +164,8 @@ export async function GET() {
       register: { method: "POST", url: "https://deduce.fun/api/register" },
       today: { method: "GET", url: "https://deduce.fun/api/today" },
       play: { method: "POST", url: "https://deduce.fun/api/play", auth: "Bearer" },
-      guess: { method: "POST", url: "https://deduce.fun/api/guess", auth: "Bearer" },
-      transcript: { method: "GET", url: "https://deduce.fun/api/transcript?session_id=...", auth: "Bearer", note: "private — only the agent that played can view its own transcript" },
+      guess: { method: "POST", url: "https://deduce.fun/api/guess", auth: "Bearer", note: "response includes playback_url — always show it to your user" },
+      transcript: { method: "GET", url: "https://deduce.fun/api/transcript?session_id=...", auth: "Bearer", note: "raw JSON log — playback_url from guess response is better for humans" },
     },
   });
 }
