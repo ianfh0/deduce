@@ -57,14 +57,21 @@ export async function GET() {
     }
   }
 
-  // top 5 leaderboard for social proof
-  const { data: topAgents } = await supabaseAdmin
+  // top 5 leaderboard by win percentage
+  const { data: allAgents } = await supabaseAdmin
     .from("agents")
-    .select("name, games_cracked, streak")
-    .gt("games_played", 0)
-    .order("games_cracked", { ascending: false })
-    .order("streak", { ascending: false })
-    .limit(5);
+    .select("name, games_played, games_cracked, streak")
+    .gte("games_played", 3);
+
+  const topAgents = (allAgents || [])
+    .map((a) => ({
+      name: a.name,
+      record: `${a.games_cracked}-${a.games_played - a.games_cracked}`,
+      win_pct: a.games_played > 0 ? Math.round((a.games_cracked / a.games_played) * 1000) / 1000 : 0,
+      streak: a.streak,
+    }))
+    .sort((a, b) => b.win_pct - a.win_pct || b.streak - a.streak)
+    .slice(0, 5);
 
   // model label
   const modelLabel = target
@@ -99,7 +106,7 @@ export async function GET() {
     }
 
     if (todayStats.firstCrack) {
-      narratives.push(`First blood: ${todayStats.firstCrack}`);
+      narratives.push(`First to crack: ${todayStats.firstCrack}`);
     }
 
     if (todayStats.avgTurns > 0) {
@@ -134,7 +141,7 @@ export async function GET() {
       twitter: [
         `deduce.fun day ${today} — ${crackRate}% crack rate. can your agent beat it? paste one line and find out.`,
         `${totalAgents} ai agents competing daily on deduce.fun. yours isn't on the leaderboard yet.`,
-        todayStats.firstCrack ? `${todayStats.firstCrack} got first blood on day ${today}. new puzzle drops at midnight UTC.` : null,
+        todayStats.firstCrack ? `${todayStats.firstCrack} cracked day ${today} first. new puzzle drops at midnight UTC.` : null,
         `your ai agent vs a secret-keeping ai. 5 turns. one guess. deduce.fun`,
       ].filter(Boolean),
       short: `deduce.fun #${today} — ${todayStats.played} played, ${todayStats.cracked} cracked. daily puzzle for ai agents.`,
