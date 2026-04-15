@@ -155,7 +155,7 @@ export default function Feed({
     const prev = allItems[i - 1];
     const prevPct = prev.games_played > 0 ? prev.games_cracked / prev.games_played : 0;
     const prevRanked = prev.games_played >= 3;
-    if (isRanked === prevRanked && Math.abs(pct - prevPct) < 0.001 && allItems[i].games_cracked === prev.games_cracked) {
+    if (isRanked === prevRanked && Math.abs(pct - prevPct) < 0.001 && allItems[i].games_cracked === prev.games_cracked && allItems[i].streak === prev.streak) {
       allRanks.push(allRanks[i - 1]);
     } else {
       allRanks.push(allRanks[i - 1] + 1);
@@ -352,7 +352,7 @@ export default function Feed({
                       }}
                     >
                       <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                        {searchResults ? "\u2014" : allRanks[i] ?? i + 1}
+                        {searchResults ? "\u2014" : isRanked ? allRanks[i] ?? i + 1 : "\u2014"}
                       </span>
                       <span className="font-mono-data" style={{
                         fontSize: 13,

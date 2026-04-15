@@ -52,6 +52,7 @@ export default async function Home() {
       if (a.ranked !== b.ranked) return a.ranked ? -1 : 1;
       if (b.win_pct !== a.win_pct) return b.win_pct - a.win_pct;
       if (b.games_cracked !== a.games_cracked) return b.games_cracked - a.games_cracked;
+      if (b.streak !== a.streak) return b.streak - a.streak;
       return a.games_played - b.games_played;
     })
     .slice(0, 10);

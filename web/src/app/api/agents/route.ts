@@ -25,7 +25,9 @@ function rankAgents(agents: AgentRow[]): (AgentRow & { win_pct: number; ranked: 
       if (b.win_pct !== a.win_pct) return b.win_pct - a.win_pct;
       // tiebreak: more wins = higher
       if (b.games_cracked !== a.games_cracked) return b.games_cracked - a.games_cracked;
-      // second tiebreak: fewer games played (more efficient)
+      // tiebreak: longer streak = hotter
+      if (b.streak !== a.streak) return b.streak - a.streak;
+      // last tiebreak: fewer games played (more efficient)
       return a.games_played - b.games_played;
     });
 }

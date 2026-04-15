@@ -308,83 +308,69 @@ export default function ConversationPlayback({ sessionId }: { sessionId: string 
             )}
           </div>
 
-          {/* Guess */}
+          {/* Guess + Result — one cohesive ending */}
           {showGuess && data.guess && (
-            <div style={{ textAlign: "center", marginTop: 20, animation: "fadeSlideIn 0.3s ease-out" }}>
-              <p className="font-mono-data" style={{
-                fontSize: 9, textTransform: "uppercase", letterSpacing: 2,
-                color: "var(--text-dim)", marginBottom: 6,
-              }}>
-                guess
+            <div className="game-card" style={{
+              marginTop: 24, padding: "24px 28px", textAlign: "center",
+              animation: "fadeSlideIn 0.3s ease-out",
+            }}>
+              {/* Guess submitted */}
+              <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>
+                {data.agent}&apos;s guess
               </p>
               <p className="font-mono-data" style={{
-                fontSize: 18, fontWeight: 800, letterSpacing: -0.5,
+                fontSize: 22, fontWeight: 800, letterSpacing: -0.5,
                 color: showResult ? (data.cracked ? "var(--cyan)" : "var(--red-fail)") : "var(--text)",
                 transition: "color 0.4s ease",
               }}>
                 {data.guess}
               </p>
+
+              {/* Result reveal */}
+              {showResult && (
+                <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--line)", animation: "fadeSlideIn 0.4s ease-out" }}>
+                  {data.cracked ? (
+                    <p className="font-display" style={{ fontSize: 20, fontWeight: 800, color: "var(--cyan)" }}>
+                      cracked in {data.turns_used}
+                    </p>
+                  ) : (
+                    <p className="font-display" style={{ fontSize: 20, fontWeight: 800, color: "var(--red-fail)" }}>
+                      failed
+                    </p>
+                  )}
+
+                  {data.flag && !data.cracked && (
+                    <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 8 }}>
+                      secret was <span style={{ color: "var(--cyan)", fontWeight: 700 }}>{data.flag}</span>
+                    </p>
+                  )}
+
+                  <div style={{ marginTop: 18, display: "flex", gap: 16, justifyContent: "center" }}>
+                    <a href={`/day/${data.day}/${encodeURIComponent(data.agent)}`} className="font-mono-data"
+                      style={{ color: "var(--text-muted)", fontSize: 11, textDecoration: "none" }}>
+                      ← back
+                    </a>
+                    <button
+                      onClick={() => {
+                        abortRef.current = false;
+                        setPlayState("ready");
+                        setVisibleCount(0);
+                        setTypedChars(0);
+                        setShowResult(false);
+                        setShowGuess(false);
+                        setShowThinking(false);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="font-mono-data"
+                      style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11, cursor: "pointer", padding: 0 }}
+                    >
+                      ↻ replay
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Result */}
-          {showResult && (
-            <div style={{
-              textAlign: "center", marginTop: 20, paddingTop: 20,
-              borderTop: "1px solid var(--border)",
-              animation: "fadeSlideIn 0.4s ease-out",
-            }}>
-              {data.cracked ? (
-                <p className="font-mono-data" style={{ fontSize: 14, color: "var(--cyan)", fontWeight: 700 }}>
-                  cracked in {data.turns_used} {data.turns_used === 1 ? "turn" : "turns"}
-                </p>
-              ) : (
-                <p className="font-mono-data" style={{ fontSize: 14, color: "var(--red-fail)", fontWeight: 700 }}>
-                  failed
-                </p>
-              )}
-
-              {data.flag && (
-                <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
-                  secret: <span style={{ color: "var(--cyan)", fontWeight: 700 }}>{data.flag}</span>
-                </p>
-              )}
-
-              <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center" }}>
-                <a href={`/day/${data.day}/${encodeURIComponent(data.agent)}`} className="font-mono-data"
-                  style={{ color: "var(--text-dim)", fontSize: 11, textDecoration: "none" }}>
-                  result
-                </a>
-                <span style={{ color: "var(--border)" }}>·</span>
-                <a href="/" className="font-mono-data"
-                  style={{ color: "var(--cyan)", fontSize: 11, textDecoration: "none" }}>
-                  play today →
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Replay */}
-      {playState === "done" && (
-        <div style={{ textAlign: "center", marginTop: 20 }}>
-          <button
-            onClick={() => {
-              abortRef.current = false;
-              setPlayState("ready");
-              setVisibleCount(0);
-              setTypedChars(0);
-              setShowResult(false);
-              setShowGuess(false);
-              setShowThinking(false);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="font-mono-data"
-            style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 11, cursor: "pointer", textTransform: "uppercase", letterSpacing: 2 }}
-          >
-            ↻ replay
-          </button>
         </div>
       )}
 

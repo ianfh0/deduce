@@ -98,10 +98,11 @@ export default async function ResultPage({ params }: Props) {
 
   if (!result) {
     return (
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px", textAlign: "center" }}>
-        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>deduce</h1>
-        <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 24 }}>result not found</p>
-        <Link href="/" style={{ color: "var(--cyan)", textDecoration: "none", fontSize: 13 }}>← back to today</Link>
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px" }}>
+        <Link href="/" className="font-mono-data" style={{ fontSize: 13, color: "var(--text-muted)" }}>← back</Link>
+        <div className="game-card" style={{ marginTop: 48, padding: "40px 28px", textAlign: "center" }}>
+          <p className="font-display" style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>Result not found</p>
+        </div>
       </div>
     );
   }
@@ -114,112 +115,137 @@ export default async function ResultPage({ params }: Props) {
     : target.defender_model;
 
   return (
-    <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 40px 60px" }}>
-      {/* Header */}
-      <div style={{ textAlign: "center" }}>
+    <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px" }}>
+      <Link href={`/agent/${encodeURIComponent(agentInfo.name)}`} className="font-mono-data" style={{
+        fontSize: 13, color: "var(--text-muted)",
+      }}>
+        ← back
+      </Link>
+
+      {/* Hero — the screenshot moment */}
+      <div style={{ textAlign: "center", marginTop: 36 }}>
         <Link href="/" style={{ textDecoration: "none" }}>
-          <h1 className="font-display" style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1.5, color: "var(--cyan)" }}>deduce</h1>
+          <p className="font-display" style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, color: "var(--cyan)" }}>
+            deduce
+          </p>
         </Link>
-        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, textTransform: "uppercase", letterSpacing: 2 }}>
-          day {dayNum}
+        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2, textTransform: "uppercase", letterSpacing: 2 }}>
+          day {dayNum} · {target.date}
         </p>
       </div>
 
-      {/* Main card — everything in one */}
-      <div className="game-card" style={{ padding: "28px 28px", marginTop: 24, textAlign: "center" }}>
-        {/* Agent */}
+      {/* Result card */}
+      <div className="game-card" style={{ padding: "32px 28px", marginTop: 24, textAlign: "center" }}>
+        {/* Agent name — big and clear */}
         <Link href={`/agent/${encodeURIComponent(agentInfo.name)}`} style={{ textDecoration: "none" }}>
-          <p className="font-mono-data" style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>
+          <p className="font-display" style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5, color: "var(--text)" }}>
             {agentInfo.name}
           </p>
         </Link>
-        <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
+        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
           {agentInfo.model} vs {modelLabel}
         </p>
 
-        {/* Result */}
-        <div style={{ marginTop: 20 }}>
+        {/* Outcome — the big number or fail state */}
+        <div style={{ marginTop: 24 }}>
           {attempt.cracked ? (
             <>
-              <p style={{ fontSize: 44, fontWeight: 800, color: "var(--cyan)", letterSpacing: -2, lineHeight: 1 }}>
+              <p className="font-display" style={{ fontSize: 56, fontWeight: 800, color: "var(--cyan)", letterSpacing: -2, lineHeight: 1 }}>
                 {attempt.turns_used}
               </p>
               <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, textTransform: "uppercase", letterSpacing: 2 }}>
                 {attempt.turns_used === 1 ? "turn" : "turns"} to crack
               </p>
               {rank > 0 && (
-                <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
-                  #{rank} of {totalAttempts}
+                <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 10 }}>
+                  #{rank} of {totalAttempts} agents
                 </p>
               )}
             </>
           ) : (
             <>
-              <p style={{ fontSize: 24, fontWeight: 800, color: "var(--red-fail)", lineHeight: 1 }}>failed</p>
-              <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>
-                {totalCracked} of {totalAttempts} cracked it
+              <p className="font-display" style={{ fontSize: 36, fontWeight: 800, color: "var(--red-fail)", lineHeight: 1 }}>
+                failed
+              </p>
+              <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
+                {totalCracked} of {totalAttempts} cracked this one
               </p>
             </>
           )}
         </div>
 
-        {/* Secret + guess — past days */}
+        {/* Secret + guess — only past days */}
         {isPastDay && flag && (
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
-            <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)" }}>
-              secret: <span style={{ color: "var(--cyan)", fontWeight: 700 }}>{flag}</span>
-            </p>
-            {guess && (
-              <p className="font-mono-data" style={{ fontSize: 11, color: attempt.cracked ? "var(--cyan)" : "var(--red-fail)", marginTop: 4 }}>
-                guessed: {guess}
-              </p>
-            )}
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 32 }}>
+              <div>
+                <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>
+                  secret
+                </p>
+                <p className="font-mono-data" style={{ fontSize: 16, fontWeight: 700, color: "var(--cyan)" }}>
+                  {flag}
+                </p>
+              </div>
+              {guess && (
+                <div>
+                  <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>
+                    guessed
+                  </p>
+                  <p className="font-mono-data" style={{ fontSize: 16, fontWeight: 700, color: attempt.cracked ? "var(--cyan)" : "var(--red-fail)" }}>
+                    {guess}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Briefing */}
-        <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--text-dim)", fontStyle: "italic", marginTop: 14 }}>
-          &ldquo;{target.briefing}&rdquo;
-        </p>
-
-        {/* Replay button */}
-        {isPastDay && conversation && conversation.length > 0 && (
-          <div style={{ marginTop: 18 }}>
-            <Link
-              href={`/play/${result.sessionId}`}
-              className="font-mono-data"
-              style={{
-                display: "inline-block",
-                background: "rgba(46, 230, 214, 0.08)",
-                border: "1px solid rgba(46, 230, 214, 0.2)",
-                borderRadius: 8,
-                padding: "10px 24px",
-                color: "var(--cyan)",
-                fontSize: 11,
-                fontWeight: 700,
-                textDecoration: "none",
-                textTransform: "uppercase",
-                letterSpacing: 2,
-              }}
-            >
-              ▶ watch replay
-            </Link>
-          </div>
-        )}
-
-        {/* Today lock */}
-        {!isPastDay && (
-          <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 16 }}>
-            replay unlocks after midnight UTC
-          </p>
         )}
       </div>
 
-      {/* Back */}
-      <div style={{ textAlign: "center", marginTop: 20 }}>
-        <Link href="/" className="font-mono-data" style={{ color: "var(--text-dim)", textDecoration: "none", fontSize: 11 }}>
-          ← today
+      {/* Briefing */}
+      <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-dim)", fontStyle: "italic", marginTop: 20, padding: "0 4px", textAlign: "center" }}>
+        &ldquo;{target.briefing}&rdquo;
+      </p>
+
+      {/* Replay button */}
+      {isPastDay && conversation && conversation.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <Link
+            href={`/play/${result.sessionId}`}
+            className="game-card font-mono-data"
+            style={{
+              display: "block",
+              padding: "14px 24px",
+              textAlign: "center",
+              color: "var(--cyan)",
+              fontSize: 12,
+              fontWeight: 700,
+              textDecoration: "none",
+              textTransform: "uppercase",
+              letterSpacing: 2,
+            }}
+          >
+            ▶ watch replay
+          </Link>
+        </div>
+      )}
+
+      {/* Today lock */}
+      {!isPastDay && (
+        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 20, textAlign: "center" }}>
+          replay unlocks after midnight UTC
+        </p>
+      )}
+
+      {/* Footer */}
+      <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid var(--line)" }}>
+        <Link href="/" className="font-display" style={{
+          fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: "var(--cyan)",
+        }}>
+          deduce
         </Link>
+        <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+          daily puzzle for ai agents
+        </p>
       </div>
     </div>
   );
