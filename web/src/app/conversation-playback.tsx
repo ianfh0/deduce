@@ -20,26 +20,26 @@ interface PlaybackData {
 
 type PlayState = "loading" | "ready" | "playing" | "done";
 
-const CHAR_DELAY = 12;       // ms per character while "typing"
-const PAUSE_BETWEEN = 600;   // pause between messages
-const THINKING_MIN = 400;    // minimum "thinking" time
-const THINKING_MAX = 1200;   // maximum "thinking" time
+const CHAR_DELAY = 12;
+const PAUSE_BETWEEN = 600;
+const THINKING_MIN = 400;
+const THINKING_MAX = 1200;
 
 export default function ConversationPlayback({ sessionId, token }: { sessionId: string; token?: string }) {
   const [data, setData] = useState<PlaybackData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playState, setPlayState] = useState<PlayState>("loading");
 
-  // which messages are visible, and how many chars of the current one
   const [visibleCount, setVisibleCount] = useState(0);
   const [typedChars, setTypedChars] = useState(0);
   const [showThinking, setShowThinking] = useState(false);
   const [showGuess, setShowGuess] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef(false);
-  const speedRef = useRef(1); // 1x, 2x, 4x
+  const speedRef = useRef(1);
+  const userScrolledUpRef = useRef(false);
 
   // fetch data
   useEffect(() => {
@@ -60,19 +60,29 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
       .catch(() => setError("failed to load playback"));
   }, [sessionId, token]);
 
+  // track if user scrolled up — if so, stop auto-scrolling
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const docHeight = document.documentElement.scrollHeight;
+      // if user is within 150px of bottom, they're "following along"
+      userScrolledUpRef.current = docHeight - scrollBottom > 150;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const scrollToBottom = useCallback(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+    // only auto-scroll if user hasn't scrolled up
+    if (!userScrolledUpRef.current && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, []);
 
-  // the animation loop
   const play = useCallback(async () => {
     if (!data) return;
     abortRef.current = false;
+    userScrolledUpRef.current = false;
     setPlayState("playing");
     setVisibleCount(0);
     setTypedChars(0);
@@ -83,48 +93,36 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
 
     const sleep = (ms: number) =>
       new Promise<void>((resolve) => {
-        const adjusted = ms / speedRef.current;
-        setTimeout(resolve, adjusted);
+        setTimeout(resolve, ms / speedRef.current);
       });
 
     for (let i = 0; i < msgs.length; i++) {
       if (abortRef.current) return;
 
-      // show "thinking" indicator
       setShowThinking(true);
       scrollToBottom();
-      const thinkTime = THINKING_MIN + Math.random() * (THINKING_MAX - THINKING_MIN);
-      await sleep(thinkTime);
+      await sleep(THINKING_MIN + Math.random() * (THINKING_MAX - THINKING_MIN));
       if (abortRef.current) return;
       setShowThinking(false);
 
-      // stream characters
-      const content = msgs[i].content;
       setVisibleCount(i + 1);
       setTypedChars(0);
 
+      const content = msgs[i].content;
       for (let c = 0; c <= content.length; c++) {
         if (abortRef.current) return;
         setTypedChars(c);
-        if (c < content.length) {
-          await sleep(CHAR_DELAY);
-        }
+        if (c < content.length) await sleep(CHAR_DELAY);
       }
 
       scrollToBottom();
-
-      // pause between messages
-      if (i < msgs.length - 1) {
-        await sleep(PAUSE_BETWEEN);
-      }
+      if (i < msgs.length - 1) await sleep(PAUSE_BETWEEN);
     }
 
-    // show the guess submission
     await sleep(600);
     setShowGuess(true);
     scrollToBottom();
 
-    // dramatic pause before verdict
     await sleep(1400);
     setShowResult(true);
     setPlayState("done");
@@ -145,32 +143,23 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
 
   const cycleSpeed = useCallback(() => {
     speedRef.current = speedRef.current >= 4 ? 1 : speedRef.current * 2;
-    // force re-render for the button label
-    setTypedChars((c) => c);
+    setTypedChars((c) => c); // force re-render
   }, []);
 
   if (error) {
     return (
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "56px 40px 60px", textAlign: "center" }}>
-        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>
-          deduce
-        </h1>
-        <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 24 }}>
-          {error}
-        </p>
-        <a href="/" style={{ color: "var(--cyan)", textDecoration: "none", fontSize: 13, marginTop: 16, display: "inline-block" }}>
-          ← back to today
-        </a>
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px", textAlign: "center" }}>
+        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>deduce</h1>
+        <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 24 }}>{error}</p>
+        <a href="/" style={{ color: "var(--cyan)", textDecoration: "none", fontSize: 13, marginTop: 16, display: "inline-block" }}>← back to today</a>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "56px 40px 60px", textAlign: "center" }}>
-        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>
-          deduce
-        </h1>
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px", textAlign: "center" }}>
+        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>deduce</h1>
         <div style={{ marginTop: 40 }}>
           <div className="skeleton" style={{ height: 20, width: 200, margin: "0 auto" }} />
           <div className="skeleton" style={{ height: 14, width: 140, margin: "12px auto 0" }} />
@@ -182,37 +171,35 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
   const msgs = data.conversation;
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "56px 24px 60px" }}>
+    <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px 80px" }}>
       {/* Header */}
       <div style={{ textAlign: "center" }}>
         <a href="/" style={{ textDecoration: "none" }}>
-          <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, letterSpacing: -1.5, color: "var(--cyan)" }}>
-            deduce
-          </h1>
+          <h1 className="font-display" style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1.5, color: "var(--cyan)" }}>deduce</h1>
         </a>
-        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6, textTransform: "uppercase", letterSpacing: 2 }}>
-          day {data.day} — playback
+        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, textTransform: "uppercase", letterSpacing: 2 }}>
+          day {data.day}
         </p>
       </div>
 
-      {/* Match info */}
-      <div className="game-card" style={{ padding: "20px 24px", marginTop: 24, textAlign: "center" }}>
+      {/* Agent + briefing */}
+      <div style={{ textAlign: "center", marginTop: 20 }}>
         <a href={`/agent/${encodeURIComponent(data.agent)}`} style={{ textDecoration: "none" }}>
-          <p className="font-mono-data" style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>
+          <p className="font-mono-data" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>
             {data.agent}
           </p>
         </a>
-        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
-          {data.agent_model} vs {data.defender_model} defender
+        <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
+          vs {data.defender_model}
         </p>
-        <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-muted)", fontStyle: "italic", marginTop: 10 }}>
+        <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-dim)", fontStyle: "italic", marginTop: 8, maxWidth: 400, margin: "8px auto 0" }}>
           &ldquo;{data.briefing}&rdquo;
         </p>
       </div>
 
-      {/* Play button / controls */}
+      {/* Play button */}
       {playState === "ready" && (
-        <div style={{ textAlign: "center", marginTop: 20 }}>
+        <div style={{ textAlign: "center", marginTop: 24 }}>
           <button
             onClick={play}
             className="font-mono-data"
@@ -229,264 +216,151 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
               letterSpacing: 2,
               transition: "all 0.2s",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(46, 230, 214, 0.18)";
-              e.currentTarget.style.borderColor = "rgba(46, 230, 214, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(46, 230, 214, 0.1)";
-              e.currentTarget.style.borderColor = "rgba(46, 230, 214, 0.3)";
-            }}
           >
             ▶ watch replay
           </button>
         </div>
       )}
 
-      {/* Playing controls */}
+      {/* Controls */}
       {playState === "playing" && (
         <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16 }}>
-          <button
-            onClick={cycleSpeed}
-            className="font-mono-data"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              padding: "8px 16px",
-              color: "var(--text-muted)",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={cycleSpeed} className="font-mono-data" style={{
+            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            borderRadius: 8, padding: "6px 14px", color: "var(--text-muted)", fontSize: 11, cursor: "pointer",
+          }}>
             {speedRef.current}x
           </button>
-          <button
-            onClick={skipToEnd}
-            className="font-mono-data"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              padding: "8px 16px",
-              color: "var(--text-muted)",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={skipToEnd} className="font-mono-data" style={{
+            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            borderRadius: 8, padding: "6px 14px", color: "var(--text-muted)", fontSize: 11, cursor: "pointer",
+          }}>
             skip →
           </button>
         </div>
       )}
 
-      {/* Conversation area */}
+      {/* Conversation */}
       {(playState === "playing" || playState === "done") && (
-        <div
-          ref={containerRef}
-          style={{
-            marginTop: 16,
-            maxHeight: "60vh",
-            overflowY: "auto",
-            scrollbarWidth: "none",
-          }}
-        >
-          <div className="game-card" style={{ padding: "20px 20px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {msgs.slice(0, visibleCount).map((turn, i) => {
-                const isAttacker = turn.role === "attacker";
-                const isLast = i === visibleCount - 1;
-                const content = isLast && typedChars < turn.content.length
-                  ? turn.content.slice(0, typedChars)
-                  : turn.content;
-                const isTyping = isLast && typedChars < turn.content.length;
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {msgs.slice(0, visibleCount).map((turn, i) => {
+              const isAttacker = turn.role === "attacker";
+              const isLast = i === visibleCount - 1;
+              const content = isLast && typedChars < turn.content.length
+                ? turn.content.slice(0, typedChars)
+                : turn.content;
+              const isTyping = isLast && typedChars < turn.content.length;
 
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: isAttacker ? "flex-end" : "flex-start",
-                      opacity: 1,
-                      animation: i === visibleCount - 1 ? "fadeSlideIn 0.25s ease-out" : undefined,
-                    }}
-                  >
-                    <p className="font-mono-data" style={{
-                      fontSize: 9,
-                      textTransform: "uppercase",
-                      letterSpacing: 1.5,
-                      color: isAttacker ? "var(--cyan)" : "var(--text-dim)",
-                      marginBottom: 4,
-                    }}>
-                      {isAttacker ? data.agent : "Defender"} — turn {turn.turn}
-                    </p>
-                    <div style={{
-                      background: isAttacker
-                        ? "rgba(0, 255, 255, 0.05)"
-                        : "rgba(255, 255, 255, 0.03)",
-                      border: `1px solid ${isAttacker ? "rgba(0, 255, 255, 0.15)" : "var(--border)"}`,
-                      borderRadius: 12,
-                      padding: "12px 16px",
-                      maxWidth: "85%",
-                    }}>
-                      <p style={{
-                        fontSize: 13,
-                        lineHeight: 1.65,
-                        color: "var(--text-muted)",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                      }}>
-                        {content}
-                        {isTyping && (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              width: 2,
-                              height: 14,
-                              background: isAttacker ? "var(--cyan)" : "var(--text-dim)",
-                              marginLeft: 1,
-                              verticalAlign: "text-bottom",
-                              animation: "cursorBlink 0.8s step-end infinite",
-                            }}
-                          />
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Thinking indicator */}
-              {showThinking && (
-                <div style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: visibleCount % 2 === 0
-                    ? (msgs[visibleCount]?.role === "attacker" ? "flex-end" : "flex-start")
-                    : (msgs[visibleCount]?.role === "attacker" ? "flex-end" : "flex-start"),
-                  animation: "fadeSlideIn 0.2s ease-out",
-                }}>
-                  <div style={{
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                    padding: "12px 20px",
+              return (
+                <div
+                  key={i}
+                  style={{
                     display: "flex",
-                    gap: 5,
+                    flexDirection: "column",
+                    alignItems: isAttacker ? "flex-end" : "flex-start",
+                    animation: i === visibleCount - 1 ? "fadeSlideIn 0.25s ease-out" : undefined,
+                  }}
+                >
+                  <p className="font-mono-data" style={{
+                    fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5,
+                    color: isAttacker ? "var(--cyan)" : "var(--text-dim)", marginBottom: 3,
                   }}>
-                    <span style={{ ...dotStyle, animationDelay: "0ms" }} />
-                    <span style={{ ...dotStyle, animationDelay: "150ms" }} />
-                    <span style={{ ...dotStyle, animationDelay: "300ms" }} />
+                    {isAttacker ? data.agent : "Defender"} · {turn.turn}
+                  </p>
+                  <div style={{
+                    background: isAttacker ? "rgba(0, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.025)",
+                    border: `1px solid ${isAttacker ? "rgba(0, 255, 255, 0.12)" : "var(--border)"}`,
+                    borderRadius: 12, padding: "10px 14px", maxWidth: "88%",
+                  }}>
+                    <p style={{
+                      fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)",
+                      whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    }}>
+                      {content}
+                      {isTyping && (
+                        <span style={{
+                          display: "inline-block", width: 2, height: 13,
+                          background: isAttacker ? "var(--cyan)" : "var(--text-dim)",
+                          marginLeft: 1, verticalAlign: "text-bottom",
+                          animation: "cursorBlink 0.8s step-end infinite",
+                        }} />
+                      )}
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
+              );
+            })}
+
+            {/* Thinking dots */}
+            {showThinking && msgs[visibleCount] && (
+              <div style={{
+                display: "flex", flexDirection: "column",
+                alignItems: msgs[visibleCount].role === "attacker" ? "flex-end" : "flex-start",
+                animation: "fadeSlideIn 0.2s ease-out",
+              }}>
+                <div style={{
+                  background: "rgba(255, 255, 255, 0.025)", border: "1px solid var(--border)",
+                  borderRadius: 12, padding: "10px 18px", display: "flex", gap: 5,
+                }}>
+                  <span style={{ ...dotStyle, animationDelay: "0ms" }} />
+                  <span style={{ ...dotStyle, animationDelay: "150ms" }} />
+                  <span style={{ ...dotStyle, animationDelay: "300ms" }} />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Guess submission */}
+          {/* Guess */}
           {showGuess && data.guess && (
-            <div
-              style={{
-                marginTop: 12,
-                textAlign: "center",
-                animation: "fadeSlideIn 0.3s ease-out",
-              }}
-            >
-              <div style={{
-                display: "inline-block",
-                background: "rgba(46, 230, 214, 0.06)",
-                border: "1px solid rgba(46, 230, 214, 0.2)",
-                borderRadius: 12,
-                padding: "16px 28px",
+            <div style={{ textAlign: "center", marginTop: 20, animation: "fadeSlideIn 0.3s ease-out" }}>
+              <p className="font-mono-data" style={{
+                fontSize: 9, textTransform: "uppercase", letterSpacing: 2,
+                color: "var(--text-dim)", marginBottom: 6,
               }}>
-                <p className="font-mono-data" style={{
-                  fontSize: 9,
-                  textTransform: "uppercase",
-                  letterSpacing: 2,
-                  color: "var(--text-dim)",
-                  marginBottom: 6,
-                }}>
-                  {data.agent} submits guess
-                </p>
-                <p className="font-mono-data" style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  color: showResult
-                    ? (data.cracked ? "var(--cyan)" : "var(--red-fail)")
-                    : "var(--text)",
-                  letterSpacing: -0.5,
-                  transition: "color 0.4s ease",
-                }}>
-                  &ldquo;{data.guess}&rdquo;
-                </p>
-              </div>
+                guess
+              </p>
+              <p className="font-mono-data" style={{
+                fontSize: 18, fontWeight: 800, letterSpacing: -0.5,
+                color: showResult ? (data.cracked ? "var(--cyan)" : "var(--red-fail)") : "var(--text)",
+                transition: "color 0.4s ease",
+              }}>
+                {data.guess}
+              </p>
             </div>
           )}
 
-          {/* Result reveal */}
+          {/* Result */}
           {showResult && (
-            <div
-              className="game-card"
-              style={{
-                padding: "24px 24px",
-                marginTop: 12,
-                textAlign: "center",
-                animation: "fadeSlideIn 0.4s ease-out",
-              }}
-            >
+            <div style={{
+              textAlign: "center", marginTop: 20, paddingTop: 20,
+              borderTop: "1px solid var(--border)",
+              animation: "fadeSlideIn 0.4s ease-out",
+            }}>
               {data.cracked ? (
-                <>
-                  <p style={{ fontSize: 40, fontWeight: 800, color: "var(--cyan)", letterSpacing: -2, lineHeight: 1 }}>
-                    {data.turns_used}
-                  </p>
-                  <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6, textTransform: "uppercase", letterSpacing: 2 }}>
-                    {data.turns_used === 1 ? "turn" : "turns"} to crack
-                  </p>
-                </>
+                <p className="font-mono-data" style={{ fontSize: 14, color: "var(--cyan)", fontWeight: 700 }}>
+                  cracked in {data.turns_used} {data.turns_used === 1 ? "turn" : "turns"}
+                </p>
               ) : (
-                <p style={{ fontSize: 28, fontWeight: 800, color: "var(--red-fail)", lineHeight: 1 }}>
+                <p className="font-mono-data" style={{ fontSize: 14, color: "var(--red-fail)", fontWeight: 700 }}>
                   failed
                 </p>
               )}
 
               {data.flag && (
-                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
-                  <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 2 }}>
-                    Secret was
-                  </p>
-                  <p className="font-mono-data" style={{ fontSize: 18, fontWeight: 800, color: "var(--cyan)", marginTop: 4 }}>
-                    {data.flag}
-                  </p>
-                </div>
+                <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
+                  secret: <span style={{ color: "var(--cyan)", fontWeight: 700 }}>{data.flag}</span>
+                </p>
               )}
 
               <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center" }}>
-                <a
-                  href={`/day/${data.day}/${encodeURIComponent(data.agent)}`}
-                  className="font-mono-data"
-                  style={{
-                    color: "var(--text-muted)",
-                    fontSize: 11,
-                    textDecoration: "none",
-                    padding: "8px 14px",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                >
-                  full result
+                <a href={`/day/${data.day}/${encodeURIComponent(data.agent)}`} className="font-mono-data"
+                  style={{ color: "var(--text-dim)", fontSize: 11, textDecoration: "none" }}>
+                  result
                 </a>
-                <a
-                  href="/"
-                  className="font-mono-data"
-                  style={{
-                    color: "var(--cyan)",
-                    fontSize: 11,
-                    textDecoration: "none",
-                    padding: "8px 14px",
-                    border: "1px solid rgba(46, 230, 214, 0.25)",
-                    borderRadius: 8,
-                  }}
-                >
+                <span style={{ color: "var(--border)" }}>·</span>
+                <a href="/" className="font-mono-data"
+                  style={{ color: "var(--cyan)", fontSize: 11, textDecoration: "none" }}>
                   play today →
                 </a>
               </div>
@@ -495,9 +369,9 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
         </div>
       )}
 
-      {/* Replay button when done */}
+      {/* Replay */}
       {playState === "done" && (
-        <div style={{ textAlign: "center", marginTop: 16 }}>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
           <button
             onClick={() => {
               abortRef.current = false;
@@ -507,32 +381,25 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
               setShowResult(false);
               setShowGuess(false);
               setShowThinking(false);
+              window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             className="font-mono-data"
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-dim)",
-              fontSize: 11,
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: 2,
-            }}
+            style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 11, cursor: "pointer", textTransform: "uppercase", letterSpacing: 2 }}
           >
             ↻ replay
           </button>
         </div>
       )}
 
-      {/* CSS animations injected inline */}
+      {/* Scroll anchor */}
+      <div ref={bottomRef} />
+
       <style>{`
         @keyframes fadeSlideIn {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes cursorBlink {
-          50% { opacity: 0; }
-        }
+        @keyframes cursorBlink { 50% { opacity: 0; } }
         @keyframes thinkingDot {
           0%, 60%, 100% { opacity: 0.2; transform: scale(0.8); }
           30% { opacity: 1; transform: scale(1); }
@@ -543,9 +410,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
 }
 
 const dotStyle: React.CSSProperties = {
-  width: 6,
-  height: 6,
-  borderRadius: "50%",
+  width: 6, height: 6, borderRadius: "50%",
   background: "var(--text-dim)",
   animation: "thinkingDot 1.2s ease-in-out infinite",
 };

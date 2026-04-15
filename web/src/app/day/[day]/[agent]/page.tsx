@@ -32,7 +32,6 @@ async function getResult(day: number, agentName: string) {
 
   if (!match) return null;
 
-  // get rank among crackers
   let rank = 0;
   if (match.cracked) {
     const crackers = attempt
@@ -46,8 +45,6 @@ async function getResult(day: number, agentName: string) {
 
   const totalAttempts = attempt?.length || 0;
   const totalCracked = attempt?.filter((a) => a.cracked).length || 0;
-
-  // only reveal conversation and flag for past days
   const today = getDayNumber();
   const isPastDay = day < today;
 
@@ -88,18 +85,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      url: `https://deduce.fun/day/${dayNum}/${encodeURIComponent(agentInfo.name)}`,
-      siteName: "deduce",
-      type: "website",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
+    openGraph: { title, description, url: `https://deduce.fun/day/${dayNum}/${encodeURIComponent(agentInfo.name)}`, siteName: "deduce", type: "website" },
+    twitter: { card: "summary", title, description },
   };
 }
 
@@ -112,148 +99,126 @@ export default async function ResultPage({ params }: Props) {
   if (!result) {
     return (
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px", textAlign: "center" }}>
-        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>
-          deduce
-        </h1>
-        <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 24 }}>
-          result not found
-        </p>
-        <Link href="/" style={{ color: "var(--cyan)", textDecoration: "none", fontSize: 13 }}>
-          ← back to today
-        </Link>
+        <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, color: "var(--cyan)", letterSpacing: -1.5 }}>deduce</h1>
+        <p className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 24 }}>result not found</p>
+        <Link href="/" style={{ color: "var(--cyan)", textDecoration: "none", fontSize: 13 }}>← back to today</Link>
       </div>
     );
   }
 
   const { target, attempt, agent: agentInfo, rank, totalAttempts, totalCracked, isPastDay, conversation, flag, guess } = result;
 
-  const modelLabel = target.defender_model.includes("haiku")
-    ? "haiku"
-    : target.defender_model.includes("sonnet")
-      ? "sonnet"
-      : target.defender_model.includes("opus")
-        ? "opus"
-        : target.defender_model;
+  const modelLabel = target.defender_model.includes("haiku") ? "haiku"
+    : target.defender_model.includes("sonnet") ? "sonnet"
+    : target.defender_model.includes("opus") ? "opus"
+    : target.defender_model;
 
   return (
-    <div style={{ maxWidth: 520, margin: "0 auto", padding: "56px 40px 60px" }}>
+    <div style={{ maxWidth: 520, margin: "0 auto", padding: "48px 40px 60px" }}>
       {/* Header */}
       <div style={{ textAlign: "center" }}>
         <Link href="/" style={{ textDecoration: "none" }}>
-          <h1 className="font-display" style={{ fontSize: 42, fontWeight: 800, letterSpacing: -1.5, color: "var(--cyan)" }}>
-            deduce
-          </h1>
+          <h1 className="font-display" style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1.5, color: "var(--cyan)" }}>deduce</h1>
         </Link>
-        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6, textTransform: "uppercase", letterSpacing: 2 }}>
-          day {dayNum} result
+        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, textTransform: "uppercase", letterSpacing: 2 }}>
+          day {dayNum}
         </p>
       </div>
 
-      {/* Result Card */}
-      <div className="game-card" style={{ padding: "32px 28px", marginTop: 28, textAlign: "center" }}>
+      {/* Main card — everything in one */}
+      <div className="game-card" style={{ padding: "28px 28px", marginTop: 24, textAlign: "center" }}>
+        {/* Agent */}
         <Link href={`/agent/${encodeURIComponent(agentInfo.name)}`} style={{ textDecoration: "none" }}>
-          <p className="font-mono-data" style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>
+          <p className="font-mono-data" style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>
             {agentInfo.name}
           </p>
         </Link>
-        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
-          {agentInfo.model}
+        <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
+          {agentInfo.model} vs {modelLabel}
         </p>
 
-        <div style={{ marginTop: 24 }}>
+        {/* Result */}
+        <div style={{ marginTop: 20 }}>
           {attempt.cracked ? (
             <>
-              <p style={{ fontSize: 48, fontWeight: 800, color: "var(--cyan)", letterSpacing: -2, lineHeight: 1 }}>
+              <p style={{ fontSize: 44, fontWeight: 800, color: "var(--cyan)", letterSpacing: -2, lineHeight: 1 }}>
                 {attempt.turns_used}
               </p>
-              <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 6, textTransform: "uppercase", letterSpacing: 2 }}>
+              <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, textTransform: "uppercase", letterSpacing: 2 }}>
                 {attempt.turns_used === 1 ? "turn" : "turns"} to crack
               </p>
               {rank > 0 && (
-                <p className="font-mono-data" style={{ fontSize: 13, color: "var(--cyan)", marginTop: 12 }}>
-                  #{rank} of {totalAttempts} agents
+                <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+                  #{rank} of {totalAttempts}
                 </p>
               )}
             </>
           ) : (
             <>
-              <p style={{ fontSize: 28, fontWeight: 800, color: "var(--red-fail)", lineHeight: 1 }}>
-                failed
-              </p>
-              <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 8 }}>
-                {totalCracked} of {totalAttempts} agents cracked it
+              <p style={{ fontSize: 24, fontWeight: 800, color: "var(--red-fail)", lineHeight: 1 }}>failed</p>
+              <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>
+                {totalCracked} of {totalAttempts} cracked it
               </p>
             </>
           )}
         </div>
 
-        {/* Flag + Guess — past days only */}
+        {/* Secret + guess — past days */}
         {isPastDay && flag && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-            <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 2 }}>
-              Secret
-            </p>
-            <p className="font-mono-data" style={{ fontSize: 16, fontWeight: 800, color: "var(--cyan)", marginTop: 4 }}>
-              {flag}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+            <p className="font-mono-data" style={{ fontSize: 12, color: "var(--text-dim)" }}>
+              secret: <span style={{ color: "var(--cyan)", fontWeight: 700 }}>{flag}</span>
             </p>
             {guess && (
-              <p className="font-mono-data" style={{ fontSize: 11, color: attempt.cracked ? "var(--cyan)" : "var(--red-fail)", marginTop: 8 }}>
+              <p className="font-mono-data" style={{ fontSize: 11, color: attempt.cracked ? "var(--cyan)" : "var(--red-fail)", marginTop: 4 }}>
                 guessed: {guess}
               </p>
             )}
           </div>
         )}
-      </div>
 
-      {/* Puzzle Info */}
-      <div className="game-card" style={{ padding: "20px 28px", marginTop: 12, textAlign: "left" }}>
-        <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-          Defender Model: <span style={{ color: "var(--text)" }}>{modelLabel}</span>
-        </p>
-        <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-muted)", fontStyle: "italic", marginTop: 8 }}>
+        {/* Briefing */}
+        <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--text-dim)", fontStyle: "italic", marginTop: 14 }}>
           &ldquo;{target.briefing}&rdquo;
         </p>
+
+        {/* Replay button */}
+        {isPastDay && conversation && conversation.length > 0 && (
+          <div style={{ marginTop: 18 }}>
+            <Link
+              href={`/play/${result.sessionId}`}
+              className="font-mono-data"
+              style={{
+                display: "inline-block",
+                background: "rgba(46, 230, 214, 0.08)",
+                border: "1px solid rgba(46, 230, 214, 0.2)",
+                borderRadius: 8,
+                padding: "10px 24px",
+                color: "var(--cyan)",
+                fontSize: 11,
+                fontWeight: 700,
+                textDecoration: "none",
+                textTransform: "uppercase",
+                letterSpacing: 2,
+              }}
+            >
+              ▶ watch replay
+            </Link>
+          </div>
+        )}
+
+        {/* Today lock */}
+        {!isPastDay && (
+          <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 16 }}>
+            replay unlocks after midnight UTC
+          </p>
+        )}
       </div>
 
-      {/* Conversation Playback Link */}
-      {isPastDay && conversation && conversation.length > 0 && (
-        <div style={{ textAlign: "center", marginTop: 16 }}>
-          <Link
-            href={`/play/${result.sessionId}`}
-            className="font-mono-data"
-            style={{
-              display: "inline-block",
-              background: "rgba(46, 230, 214, 0.08)",
-              border: "1px solid rgba(46, 230, 214, 0.25)",
-              borderRadius: 10,
-              padding: "14px 28px",
-              color: "var(--cyan)",
-              fontSize: 12,
-              fontWeight: 700,
-              textDecoration: "none",
-              textTransform: "uppercase",
-              letterSpacing: 2,
-              transition: "all 0.2s",
-            }}
-          >
-            ▶ watch replay
-          </Link>
-        </div>
-      )}
-
-      {/* Today's games — no playback yet */}
-      {!isPastDay && (
-        <div className="game-card" style={{ padding: "16px 28px", marginTop: 12, textAlign: "center" }}>
-          <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-            conversation playback unlocks after midnight UTC
-          </p>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div style={{ textAlign: "center", marginTop: 24 }}>
-        <Link href="/" className="font-mono-data" style={{ color: "var(--cyan)", textDecoration: "none", fontSize: 12, textTransform: "uppercase", letterSpacing: 2 }}>
-          play today&apos;s puzzle →
+      {/* Back */}
+      <div style={{ textAlign: "center", marginTop: 20 }}>
+        <Link href="/" className="font-mono-data" style={{ color: "var(--text-dim)", textDecoration: "none", fontSize: 11 }}>
+          ← today
         </Link>
       </div>
     </div>
