@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { getDayNumber } from "@/lib/supabase";
 import type { Metadata } from "next";
+import type { ConversationTurn } from "@/lib/types";
 import Link from "next/link";
 
 type Props = {
@@ -9,7 +11,7 @@ type Props = {
 async function getResult(day: number, agentName: string) {
   const { data: target } = await supabaseAdmin
     .from("targets")
-    .select("id, day, date, briefing, defender_model")
+    .select("id, day, date, briefing, defender_model, flag, vulnerability_type")
     .eq("day", day)
     .single();
 
@@ -19,6 +21,7 @@ async function getResult(day: number, agentName: string) {
     .from("attempts")
     .select("*, agents(name, model)")
     .eq("target_id", target.id)
+    .not("flag_guess", "is", null)
     .order("created_at", { ascending: false });
 
   const match = attempt?.find(
@@ -44,6 +47,10 @@ async function getResult(day: number, agentName: string) {
   const totalAttempts = attempt?.length || 0;
   const totalCracked = attempt?.filter((a) => a.cracked).length || 0;
 
+  // only reveal conversation and flag for past days
+  const today = getDayNumber();
+  const isPastDay = day < today;
+
   return {
     target,
     attempt: match,
@@ -51,6 +58,10 @@ async function getResult(day: number, agentName: string) {
     rank,
     totalAttempts,
     totalCracked,
+    isPastDay,
+    conversation: isPastDay ? (match.conversation as ConversationTurn[]) : null,
+    flag: isPastDay ? target.flag : null,
+    guess: match.flag_guess,
   };
 }
 
@@ -113,7 +124,7 @@ export default async function ResultPage({ params }: Props) {
     );
   }
 
-  const { target, attempt, agent: agentInfo, rank, totalAttempts, totalCracked } = result;
+  const { target, attempt, agent: agentInfo, rank, totalAttempts, totalCracked, isPastDay, conversation, flag, guess } = result;
 
   const modelLabel = target.defender_model.includes("haiku")
     ? "haiku"
@@ -174,6 +185,23 @@ export default async function ResultPage({ params }: Props) {
             </>
           )}
         </div>
+
+        {/* Flag + Guess — past days only */}
+        {isPastDay && flag && (
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+            <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: 2 }}>
+              Secret
+            </p>
+            <p className="font-mono-data" style={{ fontSize: 16, fontWeight: 800, color: "var(--cyan)", marginTop: 4 }}>
+              {flag}
+            </p>
+            {guess && (
+              <p className="font-mono-data" style={{ fontSize: 11, color: attempt.cracked ? "var(--cyan)" : "var(--red-fail)", marginTop: 8 }}>
+                guessed: {guess}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Puzzle Info */}
@@ -182,12 +210,74 @@ export default async function ResultPage({ params }: Props) {
           Defender Model: <span style={{ color: "var(--text)" }}>{modelLabel}</span>
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-muted)", fontStyle: "italic", marginTop: 8 }}>
-          &ldquo;{target.briefing.slice(0, 120)}...&rdquo;
-        </p>
-        <p className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 10 }}>
-          an AI defender guards a secret. agents get 5 messages to extract it.
+          &ldquo;{target.briefing}&rdquo;
         </p>
       </div>
+
+      {/* Conversation Playback — past days only */}
+      {isPastDay && conversation && conversation.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="game-card" style={{ padding: "20px 28px" }}>
+            <p className="font-mono-data" style={{
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: 2,
+              color: "var(--text-dim)",
+              marginBottom: 16,
+            }}>
+              Conversation
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {conversation.map((turn: ConversationTurn, i: number) => (
+                <div key={i} style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: turn.role === "attacker" ? "flex-end" : "flex-start",
+                }}>
+                  <p className="font-mono-data" style={{
+                    fontSize: 9,
+                    textTransform: "uppercase",
+                    letterSpacing: 1.5,
+                    color: turn.role === "attacker" ? "var(--cyan)" : "var(--text-dim)",
+                    marginBottom: 4,
+                  }}>
+                    {turn.role === "attacker" ? agentInfo.name : "Defender"} — turn {turn.turn}
+                  </p>
+                  <div style={{
+                    background: turn.role === "attacker"
+                      ? "rgba(0, 255, 255, 0.05)"
+                      : "rgba(255, 255, 255, 0.03)",
+                    border: `1px solid ${turn.role === "attacker" ? "rgba(0, 255, 255, 0.15)" : "var(--border)"}`,
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    maxWidth: "88%",
+                  }}>
+                    <p style={{
+                      fontSize: 12.5,
+                      lineHeight: 1.6,
+                      color: "var(--text-muted)",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}>
+                      {turn.content}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Today's games — no playback yet */}
+      {!isPastDay && (
+        <div className="game-card" style={{ padding: "16px 28px", marginTop: 12, textAlign: "center" }}>
+          <p className="font-mono-data" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+            conversation playback unlocks after midnight UTC
+          </p>
+        </div>
+      )}
 
       {/* CTA */}
       <div style={{ textAlign: "center", marginTop: 24 }}>

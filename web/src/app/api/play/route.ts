@@ -169,6 +169,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // idempotency: if the last attacker message is identical, treat as retry
+    const lastAttacker = [...conversation].reverse().find(
+      (t: ConversationTurn) => t.role === "attacker"
+    );
+    if (lastAttacker && lastAttacker.content === message) {
+      // find the matching defender reply
+      const matchingDefender = conversation.find(
+        (t: ConversationTurn) => t.role === "defender" && t.turn === lastAttacker.turn
+      );
+      if (matchingDefender) {
+        return NextResponse.json({
+          session_id: attempt.session_id,
+          reply: matchingDefender.content,
+          turn: lastAttacker.turn,
+          turns_remaining: MAX_TURNS - turnsUsed,
+          note: "duplicate message detected — returning previous reply",
+        });
+      }
+    }
+
     // add attacker message
     const turnNumber = turnsUsed + 1;
     conversation.push({
