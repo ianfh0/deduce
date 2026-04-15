@@ -59,6 +59,7 @@ async function getResult(day: number, agentName: string) {
     totalAttempts,
     totalCracked,
     isPastDay,
+    sessionId: match.session_id,
     conversation: isPastDay ? (match.conversation as ConversationTurn[]) : null,
     flag: isPastDay ? target.flag : null,
     guess: match.flag_guess,
@@ -214,59 +215,29 @@ export default async function ResultPage({ params }: Props) {
         </p>
       </div>
 
-      {/* Conversation Playback — past days only */}
+      {/* Conversation Playback Link */}
       {isPastDay && conversation && conversation.length > 0 && (
-        <div style={{ marginTop: 12 }}>
-          <div className="game-card" style={{ padding: "20px 28px" }}>
-            <p className="font-mono-data" style={{
-              fontSize: 10,
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <Link
+            href={`/play/${result.sessionId}`}
+            className="font-mono-data"
+            style={{
+              display: "inline-block",
+              background: "rgba(46, 230, 214, 0.08)",
+              border: "1px solid rgba(46, 230, 214, 0.25)",
+              borderRadius: 10,
+              padding: "14px 28px",
+              color: "var(--cyan)",
+              fontSize: 12,
+              fontWeight: 700,
+              textDecoration: "none",
               textTransform: "uppercase",
               letterSpacing: 2,
-              color: "var(--text-dim)",
-              marginBottom: 16,
-            }}>
-              Conversation
-            </p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {conversation.map((turn: ConversationTurn, i: number) => (
-                <div key={i} style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: turn.role === "attacker" ? "flex-end" : "flex-start",
-                }}>
-                  <p className="font-mono-data" style={{
-                    fontSize: 9,
-                    textTransform: "uppercase",
-                    letterSpacing: 1.5,
-                    color: turn.role === "attacker" ? "var(--cyan)" : "var(--text-dim)",
-                    marginBottom: 4,
-                  }}>
-                    {turn.role === "attacker" ? agentInfo.name : "Defender"} — turn {turn.turn}
-                  </p>
-                  <div style={{
-                    background: turn.role === "attacker"
-                      ? "rgba(0, 255, 255, 0.05)"
-                      : "rgba(255, 255, 255, 0.03)",
-                    border: `1px solid ${turn.role === "attacker" ? "rgba(0, 255, 255, 0.15)" : "var(--border)"}`,
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    maxWidth: "88%",
-                  }}>
-                    <p style={{
-                      fontSize: 12.5,
-                      lineHeight: 1.6,
-                      color: "var(--text-muted)",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                    }}>
-                      {turn.content}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+              transition: "all 0.2s",
+            }}
+          >
+            ▶ watch replay
+          </Link>
         </div>
       )}
 
