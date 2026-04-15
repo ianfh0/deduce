@@ -10,6 +10,8 @@ interface AgentRank {
   games_played: number;
   games_cracked: number;
   streak: number;
+  win_pct?: number;
+  ranked?: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -144,12 +146,16 @@ export default function Feed({
   const displayAllHasMore = searchResults !== null ? searchHasMore : allHasMore;
   const displayAllLoading = searchResults !== null ? searchLoading : allLoading;
 
-  // dense ranking: tied agents share a rank, next rank = previous + 1 (no gaps)
+  // dense ranking by win percentage, then total wins
   const allRanks: number[] = [];
   for (let i = 0; i < allItems.length; i++) {
+    const pct = allItems[i].games_played > 0 ? allItems[i].games_cracked / allItems[i].games_played : 0;
+    const isRanked = allItems[i].games_played >= 3;
     if (i === 0) { allRanks.push(1); continue; }
     const prev = allItems[i - 1];
-    if (allItems[i].games_cracked === prev.games_cracked && allItems[i].streak === prev.streak) {
+    const prevPct = prev.games_played > 0 ? prev.games_cracked / prev.games_played : 0;
+    const prevRanked = prev.games_played >= 3;
+    if (isRanked === prevRanked && Math.abs(pct - prevPct) < 0.001 && allItems[i].games_cracked === prev.games_cracked) {
       allRanks.push(allRanks[i - 1]);
     } else {
       allRanks.push(allRanks[i - 1] + 1);
@@ -310,63 +316,77 @@ export default function Feed({
             {/* Column headers */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "32px 1fr 44px 44px 44px",
+              gridTemplateColumns: "28px 1fr 60px 48px 40px",
               gap: 4,
               padding: "8px 20px",
               borderBottom: "1px solid var(--line)",
             }}>
               <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1 }}>#</span>
               <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1 }}>AGENT</span>
-              <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, textAlign: "right" }}>W</span>
-              <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, textAlign: "right" }}>L</span>
+              <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, textAlign: "right" }}>REC</span>
+              <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, textAlign: "right" }}>PCT</span>
               <span className="font-mono-data" style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, textAlign: "right" }}>STR</span>
             </div>
 
             {displayAgents.length > 0 ? (
               <>
-                {displayAgents.map((agent, i) => (
-                  <Link
-                    key={agent.name}
-                    href={`/agent/${encodeURIComponent(agent.name)}`}
-                    className="history-row"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "32px 1fr 44px 44px 44px",
-                      gap: 4,
-                      padding: "10px 20px",
-                      borderTop: i > 0 ? "1px solid var(--line)" : "none",
-                      textDecoration: "none",
-                      transition: "background 0.15s",
-                    }}
-                  >
-                    <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                      {searchResults ? "\u2014" : allRanks[i] ?? i + 1}
-                    </span>
-                    <span className="font-mono-data" style={{
-                      fontSize: 13,
-                      color: "var(--text)",
-                      fontWeight: 600,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {agent.name}
-                    </span>
-                    <span className="font-mono-data" style={{ fontSize: 13, color: "var(--cyan)", textAlign: "right", fontWeight: 600 }}>
-                      {agent.games_cracked}
-                    </span>
-                    <span className="font-mono-data" style={{ fontSize: 13, color: "var(--red-fail)", textAlign: "right" }}>
-                      {agent.games_played - agent.games_cracked}
-                    </span>
-                    <span className="font-mono-data" style={{
-                      fontSize: 13,
-                      color: agent.streak > 0 ? "var(--gold)" : "var(--text-dim)",
-                      textAlign: "right",
-                    }}>
-                      {agent.streak}
-                    </span>
-                  </Link>
-                ))}
+                {displayAgents.map((agent, i) => {
+                  const wins = agent.games_cracked;
+                  const losses = agent.games_played - agent.games_cracked;
+                  const pct = agent.games_played > 0 ? (agent.games_cracked / agent.games_played) : 0;
+                  const isRanked = agent.games_played >= 3;
+                  return (
+                    <Link
+                      key={agent.name}
+                      href={`/agent/${encodeURIComponent(agent.name)}`}
+                      className="history-row"
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "28px 1fr 60px 48px 40px",
+                        gap: 4,
+                        padding: "10px 20px",
+                        borderTop: i > 0 ? "1px solid var(--line)" : "none",
+                        textDecoration: "none",
+                        transition: "background 0.15s",
+                        opacity: isRanked ? 1 : 0.5,
+                      }}
+                    >
+                      <span className="font-mono-data" style={{ fontSize: 13, color: "var(--text-dim)" }}>
+                        {searchResults ? "\u2014" : allRanks[i] ?? i + 1}
+                      </span>
+                      <span className="font-mono-data" style={{
+                        fontSize: 13,
+                        color: "var(--text)",
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {agent.name}
+                      </span>
+                      <span className="font-mono-data" style={{ fontSize: 13, textAlign: "right" }}>
+                        <span style={{ color: "var(--cyan)", fontWeight: 600 }}>{wins}</span>
+                        <span style={{ color: "var(--text-dim)" }}>-</span>
+                        <span style={{ color: "var(--red-fail)" }}>{losses}</span>
+                      </span>
+                      <span className="font-mono-data" style={{
+                        fontSize: 13,
+                        color: pct >= 0.7 ? "var(--cyan)" : pct >= 0.4 ? "var(--text-muted)" : "var(--text-dim)",
+                        textAlign: "right",
+                        fontWeight: 600,
+                      }}>
+                        {pct === 1 ? "1.000" : `.${Math.round(pct * 1000).toString().padStart(3, "0")}`}
+                      </span>
+                      <span className="font-mono-data" style={{
+                        fontSize: 13,
+                        color: agent.streak > 0 ? "var(--gold)" : "var(--text-dim)",
+                        textAlign: "right",
+                      }}>
+                        {agent.streak > 0 ? agent.streak : "\u2014"}
+                      </span>
+                    </Link>
+                  );
+                })}
                 {displayAllHasMore && (
                   <button
                     className="font-mono-data"

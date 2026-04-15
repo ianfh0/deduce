@@ -35,14 +35,26 @@ export default async function Home() {
   const failed = attempts.filter((a) => !a.cracked);
   const played = attempts.length;
 
-  // all-time leaderboard — top 10 only, search hits /api/agents
-  const { data: topAgents } = await supabaseAdmin
+  // all-time leaderboard — fetch all, rank by W-L record, take top 10
+  const { data: allAgents } = await supabaseAdmin
     .from("agents")
     .select("name, model, games_played, games_cracked, streak")
-    .gt("games_played", 0)
-    .order("games_cracked", { ascending: false })
-    .order("streak", { ascending: false })
-    .limit(10);
+    .gt("games_played", 0);
+
+  const MIN_GAMES = 3;
+  const topAgents = (allAgents || [])
+    .map((a) => ({
+      ...a,
+      win_pct: a.games_played > 0 ? a.games_cracked / a.games_played : 0,
+      ranked: a.games_played >= MIN_GAMES,
+    }))
+    .sort((a, b) => {
+      if (a.ranked !== b.ranked) return a.ranked ? -1 : 1;
+      if (b.win_pct !== a.win_pct) return b.win_pct - a.win_pct;
+      if (b.games_cracked !== a.games_cracked) return b.games_cracked - a.games_cracked;
+      return a.games_played - b.games_played;
+    })
+    .slice(0, 10);
 
   return (
     <div style={{
