@@ -25,7 +25,7 @@ const PAUSE_BETWEEN = 600;
 const THINKING_MIN = 400;
 const THINKING_MAX = 1200;
 
-export default function ConversationPlayback({ sessionId, token }: { sessionId: string; token?: string }) {
+export default function ConversationPlayback({ sessionId }: { sessionId: string }) {
   const [data, setData] = useState<PlaybackData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playState, setPlayState] = useState<PlayState>("loading");
@@ -43,10 +43,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
 
   // fetch data
   useEffect(() => {
-    const params = new URLSearchParams({ s: sessionId });
-    if (token) params.set("t", token);
-
-    fetch(`/api/playback?${params}`)
+    fetch(`/api/playback?s=${sessionId}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.error) {
@@ -58,7 +55,7 @@ export default function ConversationPlayback({ sessionId, token }: { sessionId: 
         }
       })
       .catch(() => setError("failed to load playback"));
-  }, [sessionId, token]);
+  }, [sessionId]);
 
   // track if user scrolled up — if so, stop auto-scrolling
   useEffect(() => {

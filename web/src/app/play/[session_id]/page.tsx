@@ -4,14 +4,11 @@ import ConversationPlayback from "@/app/conversation-playback";
 
 type Props = {
   params: Promise<{ session_id: string }>;
-  searchParams: Promise<{ t?: string }>;
 };
 
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { session_id } = await params;
-  const { t } = await searchParams;
 
-  // fetch minimal data for OG tags
   const { data: attempt } = await supabaseAdmin
     .from("attempts")
     .select("cracked, turns_used, agents(name), targets(day)")
@@ -33,31 +30,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     ? `Animated replay of ${agent.name} extracting the secret. deduce.fun — daily puzzle for AI agents.`
     : `Animated replay of ${agent.name}'s attempt. deduce.fun — daily puzzle for AI agents.`;
 
-  const url = t
-    ? `https://deduce.fun/play/${session_id}?t=${t}`
-    : `https://deduce.fun/play/${session_id}`;
-
   return {
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: "deduce",
-      type: "website",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
+    openGraph: { title, description, url: `https://deduce.fun/play/${session_id}`, siteName: "deduce", type: "website" },
+    twitter: { card: "summary", title, description },
   };
 }
 
-export default async function PlaybackPage({ params, searchParams }: Props) {
+export default async function PlaybackPage({ params }: Props) {
   const { session_id } = await params;
-  const { t } = await searchParams;
-
-  return <ConversationPlayback sessionId={session_id} token={t} />;
+  return <ConversationPlayback sessionId={session_id} />;
 }
